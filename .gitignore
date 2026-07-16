@@ -10,11 +10,16 @@ ENV/
 # Jupyter
 .ipynb_checkpoints
 
-# Dataset files
+# Dataset files - exclude all image/data directories but keep scripts and .gitkeep
 data/raw/
 data/processed/
-# Do not ignore data/download_dataset.py
+data/raw_samples/*
+data/faces_extracted/
+# Keep important files in data/raw_samples
+!data/raw_samples/.gitkeep
+# Do not ignore scripts
 !data/download_dataset.py
+!data/face_extraction.py
 
 # Model weights
 *.pth
