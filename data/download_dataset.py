@@ -28,9 +28,10 @@ def download_kaggle_subset(subset: str, output_dir: str):
     """
     print(f"Attempting to download Kaggle dataset subset: {subset}")
     
-    # Using a sample dataset available on Kaggle as a proxy for the challenge dataset
-    # You might need to accept rules on Kaggle for specific competitions.
-    dataset_name = "robikscube/face-forensics-and-deepfake-detection-samples"
+    # "140k Real and Fake Faces" — 70k FFHQ real faces + 70k StyleGAN fake faces.
+    # Freely accessible via the Kaggle API (CC0 license, no rules acceptance required).
+    # Dataset page: https://www.kaggle.com/datasets/xhlulu/140k-real-and-fake-faces
+    dataset_name = "xhlulu/140k-real-and-fake-faces"
     
     os.makedirs(output_dir, exist_ok=True)
     
