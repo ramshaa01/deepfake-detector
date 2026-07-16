@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Dataset files
+data/raw/
+data/processed/
+# Do not ignore data/download_dataset.py
+!data/download_dataset.py
+
+# Model weights
+*.pth
+*.pt
+model/checkpoints/
+
+# Environment variables
+.env
+
+# OS junk
+.DS_Store
+Thumbs.db
