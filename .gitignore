@@ -14,9 +14,10 @@ ENV/
 data/raw/
 data/processed/
 data/raw_samples/*
-data/faces_extracted/
-# Keep important files in data/raw_samples
+data/faces_extracted/*
+# Keep important files
 !data/raw_samples/.gitkeep
+!data/faces_extracted/metadata.csv
 # Do not ignore scripts
 !data/download_dataset.py
 !data/face_extraction.py
