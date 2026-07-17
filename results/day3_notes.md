@@ -1,21 +1,35 @@
-# Day 3 Notes: Batch Face Extraction & Metadata Tracking
+# Day 3 Notes: Batch Face Extraction & Metadata Tracking (CORRECTED)
 
 ## Dataset Processing Details
-- **Method:** Iterated over the Kaggle Deepfake dataset subset using `data/batch_extract.py`.
-- **Extraction Tools:** MTCNN (Primary - still blocked by OS policy), OpenCV Haar Cascades (Secondary - Active).
-- **Execution Run:** To establish baseline metrics and a usable labeled batch for Day 3, a subset sample of 2,000 images was processed. The script supports processing the entire 140k dataset via removing the `--limit` flag (note: full run takes ~2-3 hours).
+- **Script:** `data/batch_extract.py`
+- **Extraction Tools:** MTCNN (Primary — now working via TensorFlow 2.15 on Python 3.11)
+- **Strategy:** Balanced random sampling — 1,000 real + 1,000 fake images sampled with `random.seed(42)` for reproducibility
+- **Run Time:** ~38 minutes for 2,000 images (MTCNN CPU inference, ~1.15s/image)
 
-## Extraction Metrics (2,000 image batch)
-- **Total Images Processed:** 2000 (all from the `fake` split due to directory traversal order)
-- **Total Successfully Extracted:** 1983
-- **Total Failed (No Face Detected):** 17
-- **Success Rate:** 99.15%
-- **Failure Rate:** 0.85%
+## True Dataset Population (Before Sampling)
+The full walk of `data/raw_samples/` found all images across train/test/valid splits. Sampling was done across all splits to avoid train/test leakage concerns — the downstream PyTorch DataLoader (Day 4) will implement the formal stratified split.
 
-## Failure Analysis
-- The failure rate is **less than 1%**, which is phenomenally good for OpenCV Haar Cascades on deepfake datasets.
-- Because the failure rate is well below the 15-20% threshold, no extensive manual failure investigation was necessary. The few failures (17 images) are likely due to extreme angles, occlusions, or low lighting where Haar Cascades typically struggle.
+## Extraction Metrics (Balanced 2,000 image batch)
 
-## Metadata Tracking
-- Output images were saved into `data/faces_extracted/fake/`.
-- A metadata CSV (`data/faces_extracted/metadata.csv`) was successfully generated, tracking filename, label, source path, and extraction status for all 2000 processed images. This file provides clean, structured labels for PyTorch Dataset/DataLoader creation in Day 4.
+| Metric | Count | Percentage |
+|---|---|---|
+| Total Processed | 2000 | 100% |
+| Total Successful | 2000 | 100.00% |
+| Total Failed | 0 | 0.00% |
+
+## Class Balance (Final)
+
+| Label | Successful | Failed | % of Total Success |
+|---|---|---|---|
+| REAL | 1000 | 0 | 50.00% |
+| FAKE | 1000 | 0 | 50.00% |
+
+- **Class Ratio:** real: 1000 (50%), fake: 1000 (50%) ✅ Perfectly balanced
+
+## Key Findings
+- MTCNN (the primary deep learning detector) is now fully operational on this machine via TensorFlow 2.15 on Python 3.11.
+- 0/2000 failures — MTCNN achieved 100% face detection success on the balanced sample, significantly outperforming the Haar Cascade secondary detector.
+- The dataset is ready for stratified train/val/test split and PyTorch DataLoader construction (Day 4).
+
+## Previous Run (DISCARDED — unbalanced)
+The first run (2,000 images via raw `os.walk` order) was 100% fake due to directory traversal ordering hitting the fake folder first. That run was replaced entirely by this balanced re-extraction.
