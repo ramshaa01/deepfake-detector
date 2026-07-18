@@ -50,7 +50,11 @@ All three DataLoaders confirmed working:
 - **Real filenames:** All 5-digit numeric IDs (StyleGAN-generated unique faces). Zero overlap across any split pair. **No leakage.**
 - **Fake filenames:** All 10-char alphanumeric IDs. Zero filename overlap across any split pair.
 - **Filename-level result:** `[PASS]` — zero overlap in all 6 split-pair combinations.
-- **Video-level caveat:** The Kaggle fake images were extracted from deepfake videos. Without the source metadata mapping filename → video ID, we cannot fully rule out that two crops from the same source video ended up in different splits. The practical risk is very low given we sampled only 1,000 from a pool of 70k+, but this is flagged for transparency. For production use, obtain the Kaggle metadata CSV that maps filenames to source videos.
+- **Video-level leakage: CLOSED (Day 5)** — Investigation of the Kaggle source CSV metadata (`train.csv`, `test.csv`, `valid.csv`) confirmed:
+  - REAL images come from **NVIDIA FFHQ** (Flickr Faces HQ) — StyleGAN-synthesised individual portraits. No videos, no sequences.
+  - FAKE images come from **"1 Million Fake Faces"** — StyleGAN2-synthesised individual portraits. No videos, no sequences.
+  - Neither dataset contains video frames. The Day 4 caveat was based on the assumption this might be a video-frame dataset (like DFDC). It is not.
+  - **No group-aware re-splitting needed.** Current splits are fully valid.
 
 ## Sanity Check Grids
 Sample image grids (4×4) for each split saved to:
