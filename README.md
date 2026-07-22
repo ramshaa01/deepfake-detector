@@ -39,16 +39,15 @@ This project builds a binary classifier that detects whether a face image is a *
 - Label convention: `0` = real photograph, `1` = AI-generated synthetic face
 
 ## Results
-*(To be filled in after training)*
 
 | Metric | Value |
 |---|---|
-| ROC-AUC | — |
-| Binary Accuracy (test set) | — |
+| ROC-AUC | **0.8492** (Fine-tuned baseline) |
+| Binary Accuracy (test set) | **78.00%** (Fine-tuned baseline) |
 | Accuracy under JPEG compression | — |
 | Accuracy under Gaussian blur | — |
 
-> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + Grad-CAM + frequency-domain features) achieving X% ROC-AUC on real vs. StyleGAN2-generated faces, retaining Y% accuracy under JPEG/blur compression attacks."
+> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + Grad-CAM) achieving 0.85 ROC-AUC on real vs. StyleGAN2-generated faces, retaining Y% accuracy under JPEG/blur compression attacks."
 
 ## Repo Structure
 ```
@@ -72,10 +71,15 @@ deepfake-detector/
 │   │   └── test.csv                # 300 samples  (150 real / 150 fake)
 │   └── faces_extracted/
 │       └── metadata.csv            # Extraction metadata for all 2,000 face crops
-├── model/                          # EfficientNet-B0 model (Day 6+)
+├── model/                          # EfficientNet-B0 model
+│   ├── train_baseline.py           # Head-only baseline training (Day 6)
+│   ├── train_finetune.py           # Full fine-tuning training (Day 8)
+│   ├── evaluate.py                 # Official test-set evaluation (Day 7/10)
+│   └── checkpoints/                # Model weights (gitignored)
 ├── inference/                      # FastAPI inference endpoint (Day 13+)
 ├── frontend/                       # React frontend (Day 20+)
 ├── notebooks/                      # EDA and experiment notebooks
+│   └── 02_error_analysis.py        # FPR/FNR analysis and visual review (Day 12)
 └── results/                        # Notes, grids, metrics per day
 ```
 
@@ -88,7 +92,9 @@ deepfake-detector/
 | 3 | Batch extraction (2,000 balanced crops), metadata CSV | ✅ Done |
 | 4 | PyTorch Dataset class, stratified train/val/test splits, DataLoader verification | ✅ Done |
 | 5 | Leakage verification (closed), visual quality review (0 issues) | ✅ Done |
-| 6–12 | EfficientNet-B0 transfer learning + training loop | ⏳ Upcoming |
+| 6–7 | EfficientNet-B0 baseline training (head-only) + test evaluation | ✅ Done |
+| 8–10 | Full fine-tuning setup + official test-set evaluation | ✅ Done |
+| 11–12 | Error analysis on fine-tuned model (FPR/FNR, visual patterns) | ✅ Done |
 | 13–15 | Grad-CAM interpretability + FFT frequency-domain features | ⏳ Upcoming |
 | 16–19 | FastAPI backend + inference endpoint | ⏳ Upcoming |
 | 20–24 | React + Recharts frontend | ⏳ Upcoming |
