@@ -1,21 +1,22 @@
 """
 model/evaluate.py
 -----------------
-Day 7: Official Test-Set Evaluation (Head-Only Baseline)
+Official Test-Set Evaluation
 
-Loads the trained day6_head_only_best.pth model, runs it over the test set,
+Loads a trained model checkpoint, runs it over the test set,
 and computes standard classification metrics (Accuracy, Precision, Recall,
 F1, ROC-AUC). Also generates a confusion matrix and ROC curve plot.
 
 Records average per-image inference time for performance tracking.
 
 Run from project root:
-    python model/evaluate.py
+    python model/evaluate.py --ckpt path/to/ckpt.pth --prefix day10
 """
 
 import os
 import sys
 import time
+import argparse
 from pathlib import Path
 
 import torch
@@ -38,7 +39,6 @@ from data.dataset import DeepfakeFaceDataset, get_val_test_transforms
 # ── Constants ─────────────────────────────────────────────────────────────── #
 SPLITS_DIR   = ROOT / "data" / "splits"
 FACES_DIR    = ROOT / "data" / "faces_extracted"
-CKPT_PATH    = ROOT / "model" / "checkpoints" / "day6_head_only_best.pth"
 RESULTS_DIR  = ROOT / "results"
 
 # ── Model ─────────────────────────────────────────────────────────────────── #
@@ -92,7 +92,7 @@ def evaluate(model, dataloader, device):
 
 
 # ── Plotting ──────────────────────────────────────────────────────────────── #
-def plot_confusion_matrix(y_true, y_pred, save_path):
+def plot_confusion_matrix(y_true, y_pred, save_path, title_prefix=""):
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(6,5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -100,12 +100,12 @@ def plot_confusion_matrix(y_true, y_pred, save_path):
                 yticklabels=["Real (0)", "Fake (1)"])
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
-    plt.title("Confusion Matrix (Head-Only Baseline)")
+    plt.title(f"Confusion Matrix ({title_prefix})")
     plt.tight_layout()
     plt.savefig(save_path, dpi=150)
     plt.close()
     
-def plot_roc_curve(y_true, y_probs, save_path):
+def plot_roc_curve(y_true, y_probs, save_path, title_prefix=""):
     fpr, tpr, _ = roc_curve(y_true, y_probs)
     auc_val = roc_auc_score(y_true, y_probs)
     
@@ -116,7 +116,7 @@ def plot_roc_curve(y_true, y_probs, save_path):
     plt.ylim([0.0, 1.05])
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.title("Receiver Operating Characteristic (Head-Only Baseline)")
+    plt.title(f"Receiver Operating Characteristic ({title_prefix})")
     plt.legend(loc="lower right")
     plt.tight_layout()
     plt.savefig(save_path, dpi=150)
@@ -125,6 +125,12 @@ def plot_roc_curve(y_true, y_probs, save_path):
 
 # ── Main ──────────────────────────────────────────────────────────────────── #
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate a checkpoint on the test set.")
+    parser.add_argument("--ckpt", type=str, default="model/checkpoints/day6_head_only_best.pth", help="Path to checkpoint")
+    parser.add_argument("--prefix", type=str, default="day7", help="Prefix for output files (e.g., day7, day10)")
+    parser.add_argument("--title", type=str, default="Head-Only Baseline", help="Title for plots and report")
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
     
@@ -137,12 +143,12 @@ def main():
     print(f"Test Set Size: {len(test_ds)} images")
     
     # 2. Load Model
-    if not CKPT_PATH.exists():
-        print(f"ERROR: Checkpoint not found at {CKPT_PATH}")
-        print("Please ensure Day 6 training finished successfully.")
+    ckpt_path = Path(args.ckpt)
+    if not ckpt_path.exists():
+        print(f"ERROR: Checkpoint not found at {ckpt_path}")
         sys.exit(1)
         
-    model = load_model(CKPT_PATH, device)
+    model = load_model(ckpt_path, device)
     
     # 3. Run Inference
     print("Running inference over test set...")
@@ -155,7 +161,7 @@ def main():
     f1 = f1_score(y_true, y_pred)
     auc = roc_auc_score(y_true, y_probs)
     
-    print("\n--- BASELINE METRICS ---")
+    print("\n--- EVALUATION METRICS ---")
     print(f"Accuracy:  {acc:.4f}")
     print(f"Precision: {prec:.4f}")
     print(f"Recall:    {rec:.4f}")
@@ -164,21 +170,20 @@ def main():
     print(f"\nAvg Inference Time: {avg_inf_ms:.2f} ms / image")
     
     # 5. Generate Plots
-    cm_path = RESULTS_DIR / "day7_confusion_matrix.png"
-    roc_path = RESULTS_DIR / "day7_roc_curve.png"
+    cm_path = RESULTS_DIR / f"{args.prefix}_confusion_matrix.png"
+    roc_path = RESULTS_DIR / f"{args.prefix}_roc_curve.png"
     
-    plot_confusion_matrix(y_true, y_pred, cm_path)
+    plot_confusion_matrix(y_true, y_pred, cm_path, title_prefix=args.title)
     print(f"Saved confusion matrix: {cm_path}")
     
-    plot_roc_curve(y_true, y_probs, roc_path)
+    plot_roc_curve(y_true, y_probs, roc_path, title_prefix=args.title)
     print(f"Saved ROC curve: {roc_path}")
     
     # 6. Save Markdown Report
-    report_path = RESULTS_DIR / "day7_baseline_metrics.md"
+    report_path = RESULTS_DIR / f"{args.prefix}_{'finetuned_' if 'finetuned' in args.title.lower() else 'baseline_'}metrics.md"
     with open(report_path, "w") as f:
-        f.write("# Day 7: Official Head-Only Baseline Metrics\n\n")
-        f.write("These metrics represent the performance of the **EfficientNet-B0 (Head-Only)** model on the isolated test set. ")
-        f.write("This is the official baseline to beat during full fine-tuning (Day 8+).\n\n")
+        f.write(f"# {args.prefix.capitalize()}: Official {args.title} Metrics\n\n")
+        f.write(f"These metrics represent the performance of the **EfficientNet-B0 ({args.title})** model on the isolated test set.\n\n")
         f.write("## Metrics (Test Set)\n")
         f.write(f"- **Accuracy:** {acc:.4f}\n")
         f.write(f"- **Precision:** {prec:.4f}\n")
@@ -188,8 +193,8 @@ def main():
         f.write("## Performance\n")
         f.write(f"- **Avg Inference Time:** {avg_inf_ms:.2f} ms per image (on {device.type})\n\n")
         f.write("## Plots\n")
-        f.write("- `results/day7_confusion_matrix.png`\n")
-        f.write("- `results/day7_roc_curve.png`\n")
+        f.write(f"- `results/{args.prefix}_confusion_matrix.png`\n")
+        f.write(f"- `results/{args.prefix}_roc_curve.png`\n")
         
     print(f"Saved metrics report: {report_path}")
 

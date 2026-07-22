@@ -9,6 +9,8 @@
 - **Early Stopping**: Patience = 4 epochs on `val_loss`.
 
 ## Training Progress
+*Important Note on Convergence:* Training did **not** stop due to early stopping or plateauing. It was interrupted at epoch 7 due to a server restart. At the time of interruption, both train and val accuracy were still climbing, and validation loss was still decreasing. Therefore, this checkpoint (`day8_finetuned_best.pth`) represents an **under-trained-but-still-useful** model, not a fully converged one. The results below are a snapshot of the progress made up to that point.
+
 Training was run and halted after strong progress was observed, saving the best checkpoint dynamically. Here is the trajectory of the first 7 epochs:
 
 | Epoch | Train Loss | Train Acc | Val Loss | Val Acc |
