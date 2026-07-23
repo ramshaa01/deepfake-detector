@@ -15,6 +15,9 @@ We integrated `pytorch-grad-cam` to visualize what the fine-tuned EfficientNet-B
   - *Babies/Toddlers*: For the fake toddler, the heatmap focuses perfectly on the mouth and cheeks, but finds nothing "wrong." Since StyleGAN excels at rendering smooth baby skin, the model saw a perfectly rendered mouth and incorrectly assumed it was a real photograph.
 
 ## Conclusion
-The Grad-CAM heatmaps are highly interpretable and successfully explain *why* the model is making errors. The model isn't failing randomly; it has learned specific, logical heuristics (e.g., examining glasses, hairlines, and skin texture) that sometimes backfire on edge cases. 
+The Grad-CAM heatmaps are highly interpretable and successfully explain *why* the model is making errors, revealing two distinct findings:
 
-This confirms that the model is functioning as a genuine feature-extractor for synthetic artifacts, rather than just memorizing the training set.
+1. **Positive Finding**: For correctly classified synthetic images, the model demonstrates genuine feature extraction, intelligently attending to plausible GAN-artifact regions like hairline boundaries and face-to-background blending edges.
+2. **Concerning Finding (Spurious Correlation)**: In the False Positives (real photos flagged as fake), the heatmaps prove the model has learned a spurious shortcut correlation, using eyeglasses as a "fake" heuristic. Rather than detecting a true synthetic artifact, the model is likely exploiting a distributional difference in glasses frequency or rendering quality between the FFHQ (real) and StyleGAN2 (fake) datasets.
+
+This analysis confirms the immense value of interpretability tools like Grad-CAM: it allowed us to definitively prove that a persistent error class was caused by dataset-level bias rather than random noise.

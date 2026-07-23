@@ -49,6 +49,9 @@ This project builds a binary classifier that detects whether a face image is a *
 
 > **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + Grad-CAM) achieving 0.85 ROC-AUC on real vs. StyleGAN2-generated faces, retaining Y% accuracy under JPEG/blur compression attacks."
 
+## Known Limitations
+- **Dataset Bias (Eyeglasses):** Grad-CAM interpretability analysis revealed that the model learned a spurious shortcut correlation, frequently using eyeglasses as a heuristic for classifying a face as "synthetic." This is likely due to a distributional difference in the rendering of glasses between the FFHQ and StyleGAN2 datasets. This bias is documented as a known limitation of the current training data and was deliberately kept unfixed within this project's timeline to illustrate the value of interpretability tools in uncovering dataset flaws.
+
 ## Repo Structure
 ```
 deepfake-detector/
