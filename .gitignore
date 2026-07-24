@@ -33,3 +33,5 @@ model/checkpoints/
 # OS junk
 .DS_Store
 Thumbs.db
+
+*.npz
