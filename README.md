@@ -42,12 +42,15 @@ This project builds a binary classifier that detects whether a face image is a *
 
 | Metric | Value |
 |---|---|
-| ROC-AUC | **0.8492** (Fine-tuned baseline) |
-| Binary Accuracy (test set) | **78.00%** (Fine-tuned baseline) |
+| ROC-AUC | **0.8544** (CNN + FFT Fusion) / 0.8492 (CNN-only) |
+| Binary Accuracy (test set) | **79.33%** (CNN + FFT Fusion) / 78.00% (CNN-only) |
 | Accuracy under JPEG compression | — |
 | Accuracy under Gaussian blur | — |
 
-> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + Grad-CAM) achieving 0.85 ROC-AUC on real vs. StyleGAN2-generated faces, retaining Y% accuracy under JPEG/blur compression attacks."
+> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + Grad-CAM + FFT feature fusion) achieving 0.854 ROC-AUC on real vs. StyleGAN2-generated faces, retaining Y% accuracy under JPEG/blur compression attacks."
+
+### Frequency-Domain Experiment
+We tested the hypothesis that global FFT frequency-domain features (16-bin radial energy distribution) could serve as a complementary signal to detect GAN upsampling artifacts. As a standalone feature, FFT achieved 54.33% accuracy (barely above random), reflecting StyleGAN2's architectural mitigation of coarse spectral artifacts and cropping alignment effects. Fusing this feature branch with the frozen fine-tuned CNN yielded a marginal boost (79.33% vs 78.00% accuracy, 0.8544 vs 0.8492 ROC-AUC) while significantly improving fake recall to 86.67%.
 
 ## Known Limitations
 - **Dataset Bias (Eyeglasses):** Grad-CAM interpretability analysis revealed that the model learned a spurious shortcut correlation, frequently using eyeglasses as a heuristic for classifying a face as "synthetic." This is likely due to a distributional difference in the rendering of glasses between the FFHQ and StyleGAN2 datasets. This bias is documented as a known limitation of the current training data and was deliberately kept unfixed within this project's timeline to illustrate the value of interpretability tools in uncovering dataset flaws.
@@ -74,12 +77,17 @@ deepfake-detector/
 │   │   └── test.csv                # 300 samples  (150 real / 150 fake)
 │   └── faces_extracted/
 │       └── metadata.csv            # Extraction metadata for all 2,000 face crops
-├── model/                          # EfficientNet-B0 model
+├── model/                          # EfficientNet-B0 & Fusion models
 │   ├── train_baseline.py           # Head-only baseline training (Day 6)
 │   ├── train_finetune.py           # Full fine-tuning training (Day 8)
 │   ├── evaluate.py                 # Official test-set evaluation (Day 7/10)
+│   ├── gradcam_viz.py              # Grad-CAM heatmap visualization (Day 13)
+│   ├── gradcam_compare.py          # Grad-CAM variant comparison (Day 14)
+│   ├── frequency_features.py       # FFT radial energy feature extraction (Day 15)
+│   ├── train_fusion.py             # CNN + FFT fusion model training (Day 16)
+│   ├── evaluate_fusion.py          # Fusion model test-set evaluation (Day 16)
 │   └── checkpoints/                # Model weights (gitignored)
-├── inference/                      # FastAPI inference endpoint (Day 13+)
+├── inference/                      # FastAPI inference endpoint (Day 17+)
 ├── frontend/                       # React frontend (Day 20+)
 ├── notebooks/                      # EDA and experiment notebooks
 │   └── 02_error_analysis.py        # FPR/FNR analysis and visual review (Day 12)
@@ -98,8 +106,10 @@ deepfake-detector/
 | 6–7 | EfficientNet-B0 baseline training (head-only) + test evaluation | ✅ Done |
 | 8–10 | Full fine-tuning setup + official test-set evaluation | ✅ Done |
 | 11–12 | Error analysis on fine-tuned model (FPR/FNR, visual patterns) | ✅ Done |
-| 13–15 | Grad-CAM interpretability + FFT frequency-domain features | ⏳ Upcoming |
-| 16–19 | FastAPI backend + inference endpoint | ⏳ Upcoming |
+| 13–14 | Grad-CAM interpretability & variant comparison (Grad-CAM, ++, Eigen) | ✅ Done |
+| 15 | FFT-based frequency-domain feature extraction & standalone classifier | ✅ Done |
+| 16 | CNN + FFT feature fusion model & 3-way baseline evaluation | ✅ Done |
+| 17–19 | FastAPI backend + inference endpoint | ⏳ Upcoming |
 | 20–24 | React + Recharts frontend | ⏳ Upcoming |
 | 25–27 | Robustness testing (JPEG compression / blur / resize) | ⏳ Upcoming |
 | 28–30 | Deployment + final quantified metrics | ⏳ Upcoming |
