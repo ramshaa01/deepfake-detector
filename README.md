@@ -93,6 +93,7 @@ deepfake-detector/
 │   ├── train_fusion.py             # CNN + FFT fusion model training (Day 16)
 │   ├── evaluate_fusion.py          # Fusion model test-set evaluation (Day 16)
 │   ├── benchmark_investigation.py  # Latency & PR-curve investigation (Day 16-17)
+│   ├── robustness_suite.py         # Robustness perturbation generator (Day 18)
 │   └── checkpoints/                # Model weights (gitignored; README documents day16 as final)
 ├── inference/                      # FastAPI inference endpoint (Day 17+)
 ├── frontend/                       # React frontend (Day 20+)
@@ -117,9 +118,10 @@ deepfake-detector/
 | 15 | FFT-based frequency-domain feature extraction & standalone classifier | ✅ Done |
 | 16 | CNN + FFT feature fusion model & 3-way baseline evaluation | ✅ Done |
 | 16-17 | Timing & PR-curve threshold investigation (latency fix + matched PR analysis) | ✅ Done |
-| 17–19 | FastAPI backend + inference endpoint | ⏳ Upcoming |
-| 20–24 | React + Recharts frontend | ⏳ Upcoming |
-| 25–27 | Robustness testing (JPEG compression / blur / resize) | ⏳ Upcoming |
+| 18 | Robustness perturbation suite (JPEG/blur/resize) & visual sanity grid | ✅ Done |
+| 19 | Robustness evaluation under image degradation & breakdown report | ⏳ Upcoming |
+| 20–24 | FastAPI inference backend & React/Recharts frontend | ⏳ Upcoming |
+| 25–27 | Robustness testing analysis & pipeline integration | ⏳ Upcoming |
 | 28–30 | Deployment + final quantified metrics | ⏳ Upcoming |
 
 ## Setup
@@ -142,4 +144,7 @@ python data/make_splits.py
 
 # Verify DataLoaders
 python data/verify_dataloaders.py
+
+# Generate robustness perturbation suite
+python model/robustness_suite.py
 ```

@@ -15,6 +15,8 @@ data/raw/
 data/processed/
 data/raw_samples/*
 data/faces_extracted/*
+data/perturbed/
+
 # Keep important files
 !data/raw_samples/.gitkeep
 !data/faces_extracted/metadata.csv
