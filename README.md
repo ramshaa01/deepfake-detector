@@ -40,18 +40,23 @@ This project builds a binary classifier that detects whether a face image is a *
 
 ## Results
 
-| Model Iteration | Test Accuracy | ROC-AUC | PR-AUC (Avg Precision) | Single-Image Latency (Batch=1) |
-|---|---|---|---|---|
-| **Day 7 (Head-Only CNN)** | 75.67% | 0.8249 | 0.7912 | ~195 ms |
-| **Day 10 (Fine-Tuned CNN)** | 78.00% | 0.8492 | 0.8196 | **~191 ms** |
-| **Day 16 (CNN + FFT Fusion)** | **79.00%** | **0.8535** | **0.8222** | ~241 ms (+50 ms) |
+| Model Iteration | Test Accuracy | ROC-AUC | PR-AUC (Avg Precision) | Single-Image Latency (Batch=1) | Status |
+|---|---|---|---|---|---|
+| **Day 7 (Head-Only CNN)** | 75.67% | 0.8249 | 0.7912 | ~195 ms | Baseline |
+| **Day 10 (Fine-Tuned CNN)** | 78.00% | 0.8492 | 0.8196 | **~191 ms** | CNN Baseline |
+| **Day 16 (CNN + FFT Fusion)** | **79.00%** | **0.8535** | **0.8222** | ~241 ms (+50 ms) | **FINAL / PRODUCTION** |
 
-> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + Grad-CAM + FFT feature fusion) achieving 0.854 ROC-AUC on real vs. StyleGAN2-generated faces, retaining Y% accuracy under JPEG/blur compression attacks."
+> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + 16-bin FFT feature fusion + Grad-CAM) achieving 79.00% accuracy and 0.8535 ROC-AUC on real vs. StyleGAN2-generated faces (~241ms single-image CPU latency), retaining Y% accuracy under JPEG/blur compression attacks."
+
+### Model Selection Decision
+We designated the **Day 16 CNN + FFT Fusion model** (`day16_fusion_best.pth`) as our final production model. 
+- **The Trade-Off**: Fusion delivers higher overall accuracy (79.00% vs 78.00%), a better ROC-AUC (0.8535 vs 0.8492), a higher PR-AUC (0.8222 vs 0.8196), and a +2.11% precision advantage at matched recall (75.14% vs 73.03% @ 86.67% recall), at the cost of a +50 ms CPU latency penalty (~241 ms vs ~191 ms per single-image upload).
+- **Decision Rationale**: For synthetic face screening in trust-and-safety, content moderation, and identity verification use cases, **classification accuracy and precision are prioritized over a 50 ms latency difference**.
 
 ### Frequency-Domain Experiment & Investigation
 We tested the hypothesis that global FFT frequency-domain features (16-bin radial energy distribution) could serve as a complementary signal to detect GAN upsampling artifacts. As a standalone feature, FFT achieved 54.33% accuracy (barely above random), reflecting StyleGAN2's architectural mitigation of coarse spectral artifacts. A Day 16–17 investigation (`results/day16-17_timing_investigation.md`) revealed:
 1. **Inference Overhead**: Computing 2D FFT features on the fly adds a **~50 ms CPU latency penalty (+26% slowdown)** per image (~241 ms vs ~191 ms).
-2. **Threshold Shift Analysis**: Fusing FFT features produced only a minor ranking improvement (+0.0026 PR-AUC, +0.0043 ROC-AUC). Most of the default recall boost (+8.67%) was a threshold placement artifact; at matched 86.67% recall, Fusion achieves 75.14% precision vs. 73.03% for threshold-tuned CNN.
+2. **Threshold Shift Analysis**: Fusing FFT features produced a small, genuine ranking improvement (+0.0026 PR-AUC, +0.0043 ROC-AUC). Most of the default recall boost (+8.67%) was a threshold placement artifact; at matched 86.67% recall, Fusion achieves 75.14% precision vs. 73.03% for threshold-tuned CNN.
 
 ## Known Limitations
 - **Dataset Bias (Eyeglasses):** Grad-CAM interpretability analysis revealed that the model learned a spurious shortcut correlation, frequently using eyeglasses as a heuristic for classifying a face as "synthetic." This is likely due to a distributional difference in the rendering of glasses between the FFHQ and StyleGAN2 datasets. This bias is documented as a known limitation of the current training data and was deliberately kept unfixed within this project's timeline to illustrate the value of interpretability tools in uncovering dataset flaws.
@@ -88,7 +93,7 @@ deepfake-detector/
 │   ├── train_fusion.py             # CNN + FFT fusion model training (Day 16)
 │   ├── evaluate_fusion.py          # Fusion model test-set evaluation (Day 16)
 │   ├── benchmark_investigation.py  # Latency & PR-curve investigation (Day 16-17)
-│   └── checkpoints/                # Model weights (gitignored)
+│   └── checkpoints/                # Model weights (gitignored; README documents day16 as final)
 ├── inference/                      # FastAPI inference endpoint (Day 17+)
 ├── frontend/                       # React frontend (Day 20+)
 ├── notebooks/                      # EDA and experiment notebooks
