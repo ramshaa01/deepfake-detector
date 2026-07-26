@@ -18,14 +18,12 @@ data/faces_extracted/*
 # Keep important files
 !data/raw_samples/.gitkeep
 !data/faces_extracted/metadata.csv
-# Do not ignore scripts
-!data/download_dataset.py
-!data/face_extraction.py
 
 # Model weights
 *.pth
 *.pt
-model/checkpoints/
+model/checkpoints/*.pth
+!model/checkpoints/README.md
 
 # Environment variables
 .env
