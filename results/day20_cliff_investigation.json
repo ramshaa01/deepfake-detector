@@ -1,0 +1,11 @@
+{
+    "cliff_analysis": {
+        "num_flipped_images": 73,
+        "s1_avg_prob_on_flipped": 0.41188985109329224,
+        "s2_avg_prob_on_flipped": 0.6312103867530823,
+        "s1_avg_cnn_feat_norm": 11.503874778747559,
+        "s2_avg_cnn_feat_norm": 12.637078285217285,
+        "s1_avg_freq_feat_norm": 1.5175546407699585,
+        "s2_avg_freq_feat_norm": 1.4453051090240479
+    }
+}

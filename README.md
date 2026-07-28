@@ -46,7 +46,7 @@ This project builds a binary classifier that detects whether a face image is a *
 | **Day 10 (Fine-Tuned CNN)** | 78.00% | 0.8492 | 0.8196 | **~191 ms** | CNN Baseline |
 | **Day 16 (CNN + FFT Fusion)** | **79.00%** | **0.8535** | **0.8222** | ~241 ms (+50 ms) | **FINAL / PRODUCTION** |
 
-> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + 16-bin FFT feature fusion + Grad-CAM) achieving 79.00% accuracy and 0.8535 ROC-AUC on real vs. StyleGAN2-generated faces (~241ms single-image CPU latency), retaining Y% accuracy under JPEG/blur compression attacks."
+> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + 16-bin FFT feature fusion + Grad-CAM) achieving 79.00% accuracy and 0.8535 ROC-AUC on real vs. StyleGAN2-generated faces (~241ms single-image CPU latency), retaining 91.6% accuracy under JPEG-90 compression, but degrading to near-chance under heavy blur/downscaling."
 
 ### Model Selection Decision
 We designated the **Day 16 CNN + FFT Fusion model** (`day16_fusion_best.pth`) as our final production model. 
@@ -57,6 +57,11 @@ We designated the **Day 16 CNN + FFT Fusion model** (`day16_fusion_best.pth`) as
 We tested the hypothesis that global FFT frequency-domain features (16-bin radial energy distribution) could serve as a complementary signal to detect GAN upsampling artifacts. As a standalone feature, FFT achieved 54.33% accuracy (barely above random), reflecting StyleGAN2's architectural mitigation of coarse spectral artifacts. A Day 16–17 investigation (`results/day16-17_timing_investigation.md`) revealed:
 1. **Inference Overhead**: Computing 2D FFT features on the fly adds a **~50 ms CPU latency penalty (+26% slowdown)** per image (~241 ms vs ~191 ms).
 2. **Threshold Shift Analysis**: Fusing FFT features produced a small, genuine ranking improvement (+0.0026 PR-AUC, +0.0043 ROC-AUC). Most of the default recall boost (+8.67%) was a threshold placement artifact; at matched 86.67% recall, Fusion achieves 75.14% precision vs. 73.03% for threshold-tuned CNN.
+
+### Robustness Evaluation
+The final fusion model was evaluated against 9 image perturbation conditions to simulate real-world degradation (e.g., social media re-compression, resizing, and blur).
+- **Graceful Degradation (JPEG Compression & Minor Resize):** The model retains reasonable performance under mild JPEG compression (q90: 72.67% accuracy, q70: 68.67%) and 0.5x resize (65.33%). 
+- **Catastrophic Failure (High-Frequency Loss):** The model is highly sensitive to the removal of high-frequency details. Heavy Gaussian blur (sigma=2 and sigma=4) and severe downscaling (0.25x) cause the model to fail catastrophically, dropping to near-random chance (~52-54% accuracy). This confirms the model relies heavily on fine-grained pixel-level / spectral artifacts that are easily destroyed by smoothing operations.
 
 ## Known Limitations
 - **Dataset Bias (Eyeglasses):** Grad-CAM interpretability analysis revealed that the model learned a spurious shortcut correlation, frequently using eyeglasses as a heuristic for classifying a face as "synthetic." This is likely due to a distributional difference in the rendering of glasses between the FFHQ and StyleGAN2 datasets. This bias is documented as a known limitation of the current training data and was deliberately kept unfixed within this project's timeline to illustrate the value of interpretability tools in uncovering dataset flaws.
@@ -119,7 +124,7 @@ deepfake-detector/
 | 16 | CNN + FFT feature fusion model & 3-way baseline evaluation | ✅ Done |
 | 16-17 | Timing & PR-curve threshold investigation (latency fix + matched PR analysis) | ✅ Done |
 | 18 | Robustness perturbation suite (JPEG/blur/resize) & visual sanity grid | ✅ Done |
-| 19 | Robustness evaluation under image degradation & breakdown report | ⏳ Upcoming |
+| 19 | Robustness evaluation under image degradation & breakdown report | ✅ Done |
 | 20–24 | FastAPI inference backend & React/Recharts frontend | ⏳ Upcoming |
 | 25–27 | Robustness testing analysis & pipeline integration | ⏳ Upcoming |
 | 28–30 | Deployment + final quantified metrics | ⏳ Upcoming |
