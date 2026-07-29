@@ -44,13 +44,13 @@ This project builds a binary classifier that detects whether a face image is a *
 |---|---|---|---|---|---|
 | **Day 7 (Head-Only CNN)** | 75.67% | 0.8249 | 0.7912 | ~195 ms | Baseline |
 | **Day 10 (Fine-Tuned CNN)** | 78.00% | 0.8492 | 0.8196 | **~191 ms** | CNN Baseline |
-| **Day 16 (CNN + FFT Fusion)** | **79.00%** | **0.8535** | **0.8222** | ~241 ms (+50 ms) | **FINAL / PRODUCTION** |
+| **Day 16 (CNN + FFT Fusion)** | **79.33%** | **0.8535** | **0.8222** | ~241 ms (+50 ms) | **FINAL / PRODUCTION** |
 
-> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + 16-bin FFT feature fusion + Grad-CAM) achieving 79.00% accuracy and 0.8535 ROC-AUC on real vs. StyleGAN2-generated faces (~241ms single-image CPU latency), retaining 91.6% accuracy under JPEG-90 compression, but degrading to near-chance under heavy blur/downscaling."
+> **Resume line template:** "Built an AI-generated face detection system (EfficientNet-B0 + 16-bin FFT feature fusion + Grad-CAM) achieving 79.33% accuracy and 0.8535 ROC-AUC on real vs. StyleGAN2-generated faces (~241ms single-image CPU latency), retaining 91.6% accuracy under JPEG-90 compression, but degrading to near-chance under heavy blur/downscaling."
 
 ### Model Selection Decision
 We designated the **Day 16 CNN + FFT Fusion model** (`day16_fusion_best.pth`) as our final production model. 
-- **The Trade-Off**: Fusion delivers higher overall accuracy (79.00% vs 78.00%), a better ROC-AUC (0.8535 vs 0.8492), a higher PR-AUC (0.8222 vs 0.8196), and a +2.11% precision advantage at matched recall (75.14% vs 73.03% @ 86.67% recall), at the cost of a +50 ms CPU latency penalty (~241 ms vs ~191 ms per single-image upload).
+- **The Trade-Off**: Fusion delivers higher overall accuracy (79.33% vs 78.00%), a better ROC-AUC (0.8535 vs 0.8492), a higher PR-AUC (0.8222 vs 0.8196), and a +2.11% precision advantage at matched recall (75.14% vs 73.03% @ 86.67% recall), at the cost of a +50 ms CPU latency penalty (~241 ms vs ~191 ms per single-image upload).
 - **Decision Rationale**: For synthetic face screening in trust-and-safety, content moderation, and identity verification use cases, **classification accuracy and precision are prioritized over a 50 ms latency difference**.
 
 ### Frequency-Domain Experiment & Investigation

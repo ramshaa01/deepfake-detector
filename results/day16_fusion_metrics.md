@@ -7,7 +7,7 @@
 | Recall | 0.8667 |
 | F1 Score | 0.8075 |
 | ROC-AUC | 0.8544 |
-| Avg Inference Time | 33.19 ms/image |
+| Avg Inference Time | 53.22 ms/image |
 
 ### Confusion Matrix
 
