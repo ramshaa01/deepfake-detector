@@ -57,6 +57,7 @@ def load_resources():
     global MODEL, DEVICE, TRANSFORM, FREQ_MEAN, FREQ_STD, TARGET_LAYERS
     
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    torch.set_num_threads(1) # Save memory on Render free tier
     print(f"Loading fusion model onto {DEVICE}...")
     
     MODEL = build_model_from_ckpt(FUSION_CKPT, DEVICE)

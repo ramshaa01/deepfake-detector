@@ -3,10 +3,9 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
+# Install system dependencies if needed (opencv-python-headless doesn't need libGL, but just in case)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libgl1 \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user that HuggingFace Spaces requires
@@ -17,7 +16,9 @@ COPY requirements.txt .
 
 # Install Python dependencies
 # We use --no-cache-dir to keep the image small
+# We use --extra-index-url to pull CPU-only PyTorch, drastically reducing image size and memory
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application

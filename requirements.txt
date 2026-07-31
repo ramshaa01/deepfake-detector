@@ -12,8 +12,8 @@ pandas==3.0.3
 matplotlib==3.11.0
 
 # Face Extraction
-tensorflow>=2.13,<2.16
-mtcnn==0.1.1 # Primary choice for face extraction
+# tensorflow>=2.13,<2.16
+# mtcnn==0.1.1 # Primary choice for face extraction (Disabled for Render deployment due to 512MB RAM limit)
 # Note: face_recognition is an optional fallback. Its dlib dependency can be difficult to install on some systems (requires CMake and C++ build tools).
 # face_recognition==1.3.0 
 
