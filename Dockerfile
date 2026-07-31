@@ -1,41 +1,34 @@
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies if needed (opencv-python-headless doesn't need libGL, but just in case)
+# Install system deps: libGL needed by any opencv that ends up installed
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user that HuggingFace Spaces requires
+# Create non-root user
 RUN useradd -m -u 1000 user
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+COPY requirements.txt requirements-deploy.txt ./
 
-# Install Python dependencies
-# We use --no-cache-dir to keep the image small
-# We use --extra-index-url to pull CPU-only PyTorch, drastically reducing image size and memory
+# Install in specific order:
+# 1. CPU-only torch first (much smaller than default CUDA build)
+# 2. Install headless opencv BEFORE grad-cam to prevent grad-cam overriding it
+# 3. Then install everything else (grad-cam will see headless already installed)
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir torch==2.3.1 torchvision==0.18.1 --extra-index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir opencv-python-headless==4.10.0.84 && \
+    pip install --no-cache-dir -r requirements-deploy.txt
 
-# Copy the rest of the application
 COPY --chown=user:user . /app
-
-# Switch to the non-root user
 USER user
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV MALLOC_ARENA_MAX=2
-
-# Render sets the PORT environment variable dynamically
 ENV PORT=8000
+
 EXPOSE $PORT
 
-# Command to run the FastAPI app via Uvicorn
 CMD ["sh", "-c", "uvicorn inference.main:app --host 0.0.0.0 --port ${PORT}"]
