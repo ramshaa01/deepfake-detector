@@ -6,6 +6,8 @@ WORKDIR /app
 # Install system dependencies if needed (opencv-python-headless doesn't need libGL, but just in case)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user that HuggingFace Spaces requires
@@ -29,6 +31,7 @@ USER user
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV MALLOC_ARENA_MAX=2
 
 # Render sets the PORT environment variable dynamically
 ENV PORT=8000
