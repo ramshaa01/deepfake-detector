@@ -2,15 +2,30 @@
 
 This directory contains the FastAPI serving layer for the AI-Generated Face Detector.
 
+## Live Deployment
+
+The API is live on Render:
+
+**Base URL:** `https://deepfake-detector-k62g.onrender.com`
+
+> ⚠️ **Cold-Start Warning:** Render's free tier spins the service down after 15 minutes of
+> inactivity. The **first request after idle time will take 30–90 seconds** to respond
+> while the container wakes up. Subsequent requests within the session are fast (~200–400ms).
+> Always hit `/health` first when demoing.
+
 ## Running Locally
 
-To start the server locally:
+To start the server locally (requires all dependencies from `requirements.txt`):
 ```bash
 # From the project root
-.\venv\Scripts\activate
-pip install fastapi uvicorn python-multipart
+.\\venv\\Scripts\\activate
 uvicorn inference.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+> **Note (local only):** The local server uses MTCNN (TensorFlow-backed) as the primary face
+> detector with Haar Cascade fallback. The deployed Render version uses Haar Cascade only
+> (MTCNN/TensorFlow removed to stay within Render's 512 MB free-tier RAM limit).
+> Prediction outputs are numerically identical — only face detection recall differs slightly.
 
 ## Endpoints
 
@@ -19,6 +34,8 @@ Returns the basic uptime status and loaded model information.
 
 **Example Request:**
 ```bash
+curl https://deepfake-detector-k62g.onrender.com/health
+# or locally:
 curl http://localhost:8000/health
 ```
 
@@ -32,31 +49,53 @@ curl http://localhost:8000/health
 ```
 
 ### 2. `POST /predict`
-Accepts an image file upload, extracts the face (using MTCNN/Haar cascades), runs it through the fusion model, and returns the prediction and a base64-encoded Grad-CAM heatmap overlay.
+Accepts an image file upload, extracts the face, runs it through the CNN+FFT fusion model,
+and returns the prediction plus a base64-encoded Grad-CAM heatmap overlay.
 
 **Example Request:**
 ```bash
-curl -X POST "http://localhost:8000/predict" \
+curl -X POST "https://deepfake-detector-k62g.onrender.com/predict" \
      -H "accept: application/json" \
-     -H "Content-Type: multipart/form-data" \
-     -F "file=@data/faces_extracted/real/00000.png;type=image/png"
+     -F "file=@/path/to/face.jpg;type=image/jpeg"
 ```
 
 **Example Response:**
 ```json
 {
   "label": "real",
-  "confidence": 0.98,
-  "probability_fake": 0.02,
-  "inference_time_ms": 250.45,
+  "confidence": 0.7738,
+  "probability_fake": 0.2262,
+  "inference_time_ms": 384.92,
   "heatmap_base64": "/9j/4AAQSkZJRgABAQAAAQABAAD..."
 }
 ```
 
+**Constraints:**
+- Maximum file size: 10 MB
+- Accepted types: `image/jpeg`, `image/png`, `image/webp`, etc. (any `image/*` MIME type)
+- The uploaded image must contain a clearly visible face. If no face is detected, a
+  `400 Bad Request` is returned.
+
+## Response Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `label` | `"real"` or `"fake"` | Model prediction |
+| `confidence` | float (0–1) | Confidence in the predicted label |
+| `probability_fake` | float (0–1) | Raw probability that the face is synthetic |
+| `inference_time_ms` | float | Time spent in model inference (excludes face detection) |
+| `heatmap_base64` | string | Base64-encoded JPEG of Grad-CAM activation overlay |
+
 ## Known Limitations
 
-This endpoint relies on the `day16_fusion_best.pth` model. Please be aware of the documented limitations:
-- **Eyeglasses Bias:** The model has a learned shortcut to associate eyeglasses with synthetic faces (due to a dataset distribution mismatch between FFHQ and StyleGAN2).
-- **High-Frequency Degradation Collapse:** The model collapses to a catastrophic false-positive state (predicting everything as fake) under heavy Gaussian blur or severe downscaling (e.g. `0.25x`).
+This endpoint uses the `day16_fusion_best.pth` model. Documented limitations:
+- **Eyeglasses Bias:** The model has a learned shortcut associating eyeglasses with synthetic
+  faces (dataset distribution mismatch between FFHQ and StyleGAN2).
+- **Blur/Downscale Collapse:** Under heavy Gaussian blur (σ≥2) or severe downscaling (0.25×),
+  the model collapses and predicts nearly everything as `fake`. This is a fundamental limitation
+  of the spectral-artifact features the model learned.
+- **No-Face Fallback:** If no face is detected by Haar Cascade, the API returns a
+  centre-crop of the image (inner 80%) and runs inference on it anyway rather than refusing.
+  The result in this case is unreliable.
 
-For full details on the robustness metrics and evaluation limitations, see the [Main README](../README.md#known-limitations).
+For full robustness metrics, see [results/day19_robustness_metrics.json](../results/day19_robustness_metrics.json).

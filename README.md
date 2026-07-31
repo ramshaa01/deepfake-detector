@@ -18,7 +18,7 @@ This project builds a binary classifier that detects whether a face image is a *
   - *Python 3.11 required — needed for MTCNN/TensorFlow compatibility*
 - **Backend**: FastAPI
 - **Frontend**: React, Tailwind CSS, Recharts
-- **Deployment**: HuggingFace Spaces / Render (Backend), Vercel (Frontend)
+- **Deployment**: Render (Backend — live at https://deepfake-detector-k62g.onrender.com), Vercel (Frontend — upcoming)
 
 ## Dataset
 
@@ -65,6 +65,38 @@ The final fusion model was evaluated against 9 image perturbation conditions to 
 
 ## Known Limitations
 - **Dataset Bias (Eyeglasses):** Grad-CAM interpretability analysis revealed that the model learned a spurious shortcut correlation, frequently using eyeglasses as a heuristic for classifying a face as "synthetic." This is likely due to a distributional difference in the rendering of glasses between the FFHQ and StyleGAN2 datasets. This bias is documented as a known limitation of the current training data and was deliberately kept unfixed within this project's timeline to illustrate the value of interpretability tools in uncovering dataset flaws.
+
+## Live API
+
+The FastAPI inference endpoint is deployed on Render:
+
+**Base URL:** `https://deepfake-detector-k62g.onrender.com`
+
+> ⚠️ **Cold-Start Warning:** Render's free tier spins the service down after 15 minutes of inactivity. The **first request after idle time will take 30–90 seconds** to respond while the container restarts. Subsequent requests are fast (~200–400ms). Plan for this delay during demos or interviews.
+
+### Quick Usage
+
+```bash
+# Health check
+curl https://deepfake-detector-k62g.onrender.com/health
+
+# Predict on an image (returns label, confidence, and base64 Grad-CAM heatmap)
+curl -X POST https://deepfake-detector-k62g.onrender.com/predict \
+     -F "file=@/path/to/face.jpg;type=image/jpeg"
+```
+
+### Response Schema
+```json
+{
+  "label": "real" | "fake",
+  "confidence": 0.0..1.0,
+  "probability_fake": 0.0..1.0,
+  "inference_time_ms": 250.0,
+  "heatmap_base64": "<JPEG as base64 string>"
+}
+```
+
+See [inference/README.md](inference/README.md) for full endpoint documentation.
 
 ## Repo Structure
 ```
@@ -125,8 +157,9 @@ deepfake-detector/
 | 16-17 | Timing & PR-curve threshold investigation (latency fix + matched PR analysis) | ✅ Done |
 | 18 | Robustness perturbation suite (JPEG/blur/resize) & visual sanity grid | ✅ Done |
 | 19 | Robustness evaluation under image degradation & breakdown report | ✅ Done |
-| 20–24 | FastAPI inference backend & React/Recharts frontend | ⏳ Upcoming |
-| 25–27 | Robustness testing analysis & pipeline integration | ⏳ Upcoming |
+| 20–22 | FastAPI inference backend (local), endpoint testing | ✅ Done |
+| 24 | Render cloud deployment (pivoted from HuggingFace Spaces; live at render.com) | ✅ Done |
+| 25–27 | React frontend | ⏳ Upcoming |
 | 28–30 | Deployment + final quantified metrics | ⏳ Upcoming |
 
 ## Setup
