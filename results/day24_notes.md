@@ -116,10 +116,9 @@ Live  (Day 24):  label=fake  confidence=0.9708  prob_fake=0.9708
 ### `/predict` — Blank image (no face)
 ```
 Local (Day 22):  400 Bad Request — "No face detected in the image or failed to process."
-Live  (Day 24):  200 OK — label=fake, confidence=1.0 (centre-crop fallback active)
+Live  (Day 24):  400 Bad Request — "No face detected in the uploaded image. Please upload an image containing a clear, visible face."
 ```
-> Behaviour difference: the deployed version does a centre-crop fallback instead of
-> refusing. This is documented as a known limitation in `inference/README.md`.
+> Behaviour is consistent: both reject non-face images without silently falling back to a centre-crop.
 
 Both real/fake predictions are **correct and directionally consistent** with local results.
 

@@ -94,8 +94,5 @@ This endpoint uses the `day16_fusion_best.pth` model. Documented limitations:
 - **Blur/Downscale Collapse:** Under heavy Gaussian blur (σ≥2) or severe downscaling (0.25×),
   the model collapses and predicts nearly everything as `fake`. This is a fundamental limitation
   of the spectral-artifact features the model learned.
-- **No-Face Fallback:** If no face is detected by Haar Cascade, the API returns a
-  centre-crop of the image (inner 80%) and runs inference on it anyway rather than refusing.
-  The result in this case is unreliable.
 
 For full robustness metrics, see [results/day19_robustness_metrics.json](../results/day19_robustness_metrics.json).

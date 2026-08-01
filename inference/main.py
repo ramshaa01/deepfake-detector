@@ -74,14 +74,7 @@ def haar_extract_face(img_bytes: bytes) -> Image.Image | None:
             face_crop = img_bgr[y1:y2, x1:x2]
 
     if face_crop is None or face_crop.size == 0:
-        # Centre-crop fallback: take inner 80% of image
-        side = min(img_h, img_w)
-        cy, cx = img_h // 2, img_w // 2
-        half = side // 2
-        face_crop = img_bgr[cy - half:cy + half, cx - half:cx + half]
-
-        if face_crop is None or face_crop.size == 0:
-            return None
+        return None
 
     face_bgr = cv2.resize(face_crop, (224, 224))
     face_rgb = cv2.cvtColor(face_bgr, cv2.COLOR_BGR2RGB)
@@ -188,7 +181,7 @@ async def predict(file: UploadFile = File(...)):
         # Extract face (Haar only — no MTCNN/TF needed)
         face_pil = haar_extract_face(contents)
         if face_pil is None:
-            raise HTTPException(status_code=400, detail="Could not decode or process the image.")
+            raise HTTPException(status_code=400, detail="No face detected in the uploaded image. Please upload an image containing a clear, visible face.")
 
         t0 = time.time()
 
