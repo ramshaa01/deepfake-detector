@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-08-02",
+  "note": "Metrics from held-out test set evaluation. See GitHub repo for full methodology.",
+  "models": {
+    "baseline": {
+      "name": "EfficientNet-B0 (Fine-Tuned, CNN-only)",
+      "day": 10,
+      "accuracy": 0.7800,
+      "precision": 0.7800,
+      "recall": 0.7800,
+      "f1": 0.7800,
+      "roc_auc": 0.8492,
+      "inference_ms": 57.61
+    },
+    "fusion": {
+      "name": "Fusion (CNN + FFT Features)",
+      "day": 16,
+      "accuracy": 0.7933,
+      "precision": 0.7558,
+      "recall": 0.8667,
+      "f1": 0.8075,
+      "roc_auc": 0.8544,
+      "inference_ms": 53.22
+    }
+  },
+  "confusion_matrix": {
+    "labels": ["Real", "Fake"],
+    "matrix": [
+      [108, 42],
+      [20, 130]
+    ],
+    "note": "Rows = True class, Cols = Predicted class. Fusion model on held-out test set."
+  },
+  "robustness": [
+    { "condition": "Clean",          "family": "baseline", "accuracy": 79.33, "roc_auc": 0.8544, "retention": 100.0, "real_acc": 72.00, "fake_acc": 86.67 },
+    { "condition": "JPEG q=90",      "family": "jpeg",     "accuracy": 72.67, "roc_auc": 0.8268, "retention": 91.6,  "real_acc": 58.67, "fake_acc": 86.67 },
+    { "condition": "JPEG q=70",      "family": "jpeg",     "accuracy": 68.67, "roc_auc": 0.7727, "retention": 86.6,  "real_acc": 50.00, "fake_acc": 87.33 },
+    { "condition": "JPEG q=50",      "family": "jpeg",     "accuracy": 65.33, "roc_auc": 0.7358, "retention": 82.4,  "real_acc": 48.67, "fake_acc": 82.00 },
+    { "condition": "JPEG q=30",      "family": "jpeg",     "accuracy": 65.67, "roc_auc": 0.7112, "retention": 82.8,  "real_acc": 56.00, "fake_acc": 75.33 },
+    { "condition": "Blur σ=1",       "family": "blur",     "accuracy": 62.67, "roc_auc": 0.6466, "retention": 79.0,  "real_acc": 56.67, "fake_acc": 68.67 },
+    { "condition": "Blur σ=2",       "family": "blur",     "accuracy": 52.33, "roc_auc": 0.5363, "retention": 66.0,  "real_acc": 22.67, "fake_acc": 82.00 },
+    { "condition": "Blur σ=4",       "family": "blur",     "accuracy": 54.00, "roc_auc": 0.5192, "retention": 68.1,  "real_acc": 10.00, "fake_acc": 98.00 },
+    { "condition": "Resize 0.5×",    "family": "resize",   "accuracy": 65.33, "roc_auc": 0.7128, "retention": 82.4,  "real_acc": 46.00, "fake_acc": 84.67 },
+    { "condition": "Resize 0.25×",   "family": "resize",   "accuracy": 52.33, "roc_auc": 0.5244, "retention": 66.0,  "real_acc": 13.33, "fake_acc": 91.33 }
+  ]
+}
