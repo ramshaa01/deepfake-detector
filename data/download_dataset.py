@@ -1,5 +1,5 @@
 """
-Dataset Download Script for Deepfake/Manipulated Media Detector
+Dataset Download Script for AI-Generated Face Detector
 
 Note on FaceForensics++:
 The full FaceForensics++ dataset requires a signed usage agreement to be submitted

@@ -3,7 +3,7 @@
 ## Summary
 
 Day 24 successfully deployed the FastAPI inference endpoint (built on Day 22) to
-a live cloud host. After a pivot from HuggingFace Spaces, the backend is running on
+a live cloud host. After a pivot to Render, the backend is running on
 Render's free tier at:
 
 **Live URL:** https://deepfake-detector-k62g.onrender.com
@@ -12,9 +12,9 @@ Render's free tier at:
 
 ## Deployment Approach
 
-### Platform Selection: Pivot from HuggingFace Spaces to Render
+### Platform Selection: Pivot to Render
 
-The original plan was to deploy to HuggingFace Spaces using the Docker SDK. This failed
+The original plan was to deploy to a different cloud provider using a Docker SDK. This failed
 immediately:
 
 ```
@@ -23,7 +23,7 @@ Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on fre
 cpu-basic requires a PRO subscription.
 ```
 
-HuggingFace silently changed their billing policy — Docker Spaces now require a PRO
+The provider changed their billing policy — Docker Spaces now require a PRO
 subscription even on the free hardware tier. We pivoted to **Render's free Web Service**
 tier, which still accepts Docker containers and GitHub repo auto-deploy at no cost.
 
@@ -54,7 +54,7 @@ since those are handled in the Dockerfile with special ordering).
 
 `day16_fusion_best.pth` (~16 MB) and `data/frequency_features.npz` (~265 KB) were
 **force-committed directly to the GitHub repo** using `git add -f`. This is simpler
-than setting up HuggingFace Hub download-at-startup logic, and both files are
+than setting up cloud storage download-at-startup logic, and both files are
 well under GitHub's 100 MB per-file limit. The general `.gitignore` rule for `*.pth`
 files still applies to all other checkpoints.
 
@@ -83,7 +83,7 @@ Peak RAM usage after these changes: ~350–380 MB (safely within 512 MB limit).
 | 2 | Exit status 137 (OOM) | TensorFlow+MTCNN+PyTorch combined RAM usage exceeded 512 MB | Remove TF/MTCNN; use Haar Cascade only for face detection on Render |
 | 3 | Port not binding | Shell variable not expanded in JSON-form CMD | Changed CMD to `sh -c "uvicorn ... --port ${PORT}"` |
 | 4 | Heatmap returned empty | Grad-CAM was calling `model.cnn(img_tensor)` which returns 1280-dim flat vector, not a spatial map with valid gradients | Fixed to call full `model(img_tensor, freq_tensor)` for correct scalar logit and proper gradient flow through `conv_head` |
-| 5 | HuggingFace 402 | HF Spaces Docker SDK now requires PRO subscription | Pivoted to Render |
+| 5 | Provider 402 | Original cloud host Docker SDK now requires PRO subscription | Pivoted to Render |
 
 ---
 

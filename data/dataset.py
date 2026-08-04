@@ -1,7 +1,7 @@
 """
 data/dataset.py
 ---------------
-PyTorch Dataset class for the Deepfake / Manipulated Media Detector project.
+PyTorch Dataset class for the AI-Generated Face Detector project.
 
 Label convention (used consistently throughout this project):
     0 = REAL (authentic face)
