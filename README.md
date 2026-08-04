@@ -1,6 +1,8 @@
 # AI-Generated Face Detector
 
-> **Live Demo:** [Backend API](https://deepfake-detector-k62g.onrender.com/docs) · [Frontend](#) *(Day 29 deployment pending)*
+> **Live Demo:** [Frontend UI](https://deepfake-detector-zeta.vercel.app) · [Backend API](https://deepfake-detector-k62g.onrender.com/docs)
+> 
+> ⚠️ **Cold-start notice:** The Render free-tier backend sleeps after 15 min of inactivity. The first request after idle will take 30–90 seconds. The frontend displays a warning automatically.
 
 ## Problem Statement
 
@@ -205,12 +207,14 @@ See [frontend/README.md](frontend/README.md) for full setup instructions.
 
 ### 4. Live Endpoints
 
-| Service | URL |
-|---|---|
-| **Backend API** | https://deepfake-detector-k62g.onrender.com |
-| **API docs (Swagger)** | https://deepfake-detector-k62g.onrender.com/docs |
-| **Health check** | https://deepfake-detector-k62g.onrender.com/health |
-| **Frontend** | *(Day 29 — Vercel deployment pending)* |
+| Service | URL | Platform |
+|---|---|---|
+| **Frontend UI** | https://deepfake-detector-zeta.vercel.app | Vercel (Hobby) |
+| **Backend API** | https://deepfake-detector-k62g.onrender.com | Render (Free) |
+| **API docs (Swagger)** | https://deepfake-detector-k62g.onrender.com/docs | Render |
+| **Health check** | https://deepfake-detector-k62g.onrender.com/health | Render |
+
+Both services are independently deployed. The Vercel frontend is a static CDN build; the Render backend is a Docker container running the FastAPI inference server. See [results/day29_notes.md](results/day29_notes.md) for full end-to-end verification results.
 
 ---
 
@@ -257,7 +261,7 @@ deepfake-detector/
 
 ## Resume Line
 
-> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 fused with FFT frequency features (79.33% test accuracy, 0.8544 ROC-AUC, 86.67% recall on held-out test set of 300 balanced faces). Documented known failure modes: eyeglasses false-positive bias (confirmed via Grad-CAM), and catastrophic accuracy collapse under heavy blur/downscaling (Real accuracy drops to 10% at σ=4). Deployed via FastAPI on Render with React frontend; real-world single-image CPU latency ~241 ms.
+> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 fused with FFT frequency features (79.33% test accuracy, 0.8544 ROC-AUC, 86.67% recall on held-out test set of 300 balanced faces). Documented known failure modes: eyeglasses false-positive bias (confirmed via Grad-CAM), and catastrophic accuracy collapse under heavy blur/downscaling (Real accuracy drops to 10% at σ=4). Full-stack deployment: FastAPI backend on Render, React frontend on Vercel; backend CPU inference ~241 ms/image (Day 16-17 benchmark), live end-to-end verified.
 
 ---
 
@@ -282,4 +286,4 @@ deepfake-detector/
 | 26 | Frontend polish | Recharts confidence gauge, accessibility, responsive layout |
 | 27 | Metrics dashboard | Stat cards, confusion matrix, robustness chart, limitations callout |
 | 28 | Final README | This document |
-| 29 | Vercel deployment | *(pending)* |
+| 29 | Vercel deployment | Frontend live at deepfake-detector-zeta.vercel.app; all 6 e2e tests pass |

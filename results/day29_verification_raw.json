@@ -1,0 +1,50 @@
+{
+  "vercel_index": {
+    "status": 200,
+    "ms": 842.6,
+    "pass": true
+  },
+  "vercel_metrics": {
+    "status": 200,
+    "ms": 1104.7,
+    "pass": true
+  },
+  "render_health": {
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "model": "day16_fusion_best.pth",
+      "device": "cpu"
+    },
+    "ms": 62382.7,
+    "pass": true
+  },
+  "real_image": {
+    "label": "real",
+    "confidence": 0.7738468796014786,
+    "heatmap_chars": 11456,
+    "backend_ms": 304.51,
+    "round_trip_ms": 2562.8,
+    "pass": true
+  },
+  "fake_image": {
+    "label": "fake",
+    "confidence": 0.9708307981491089,
+    "heatmap_chars": 11748,
+    "backend_ms": 207.78,
+    "round_trip_ms": 2264.1,
+    "pass": true
+  },
+  "no_face": {
+    "status": 400,
+    "detail": "No face detected in the uploaded image. Please upload an image containing a clear, visible face.",
+    "ms": 1481.0,
+    "pass": true
+  },
+  "summary": {
+    "all_pass": true,
+    "avg_predict_round_trip_ms": 2413.4,
+    "vercel_url": "https://deepfake-detector-zeta.vercel.app",
+    "render_url": "https://deepfake-detector-k62g.onrender.com"
+  }
+}
