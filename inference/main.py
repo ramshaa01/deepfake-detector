@@ -179,8 +179,15 @@ def load_resources():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "model": "day16_fusion_best.pth", "device": "cpu", "version": "day31"}
+    return {"status": "ok", "model": "day16_fusion_best.pth", "device": "cpu", "version": "day31-v2"}
 
+@app.get("/ip")
+def get_ip(request: Request):
+    return {
+        "client_host": request.client.host if request.client else None,
+        "x_forwarded_for": request.headers.get("x-forwarded-for"),
+        "slowapi_ip": get_remote_address(request)
+    }
 
 @app.post("/predict")
 @limiter.limit("10/minute")
