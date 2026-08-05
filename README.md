@@ -133,7 +133,15 @@ Grad-CAM analysis (Day 13) revealed that the model has learned a **spurious shor
 
 The fusion model relies on high-frequency spectral artefacts introduced by GAN upsampling. Heavy Gaussian blur (σ≥2) or extreme downscaling (0.25×) destroys those artefacts, causing **real image accuracy to collapse to 10–23%** while fake accuracy remains high (82–98%). Under these conditions the model effectively predicts everything as fake. This is not recoverable by threshold tuning — the spectral signal the model learned simply does not survive the degradation.
 
-### 3. Render Free-Tier Cold Start
+### 3. Production Detector Accuracy Drop (Haar Cascade Delta)
+
+In local training and evaluation, the highly accurate MTCNN deep learning model was used for face extraction (yielding the official 79.33% accuracy). However, to deploy the API within Render's 512 MB free-tier RAM limit, MTCNN and TensorFlow had to be replaced with a lightweight OpenCV Haar Cascade detector.
+
+**Measured Production Impact (Day 31):**
+- **Detection Failures:** Haar Cascade completely fails to detect a face in 14/300 test images (4.7%). These result in a `400 Bad Request`.
+- **System Accuracy Drop:** When detection failures are appropriately penalised as missed predictions, overall system accuracy in production drops to **73.00%** (a -6.33% delta from the official 79.33% MTCNN metric), and ROC-AUC drops to **0.7527** (from 0.8544).
+
+### 4. Render Free-Tier Cold Start
 
 The live API backend runs on Render's free tier, which **spins down after 15 minutes of inactivity**. The first request after an idle period takes **30–90 seconds** to respond while the container restarts and loads the model. Subsequent requests within the same session are fast (~240–400 ms end-to-end). The frontend handles this with a visible "waking up the server" notice after 5 seconds.
 

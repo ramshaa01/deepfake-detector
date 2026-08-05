@@ -49,8 +49,9 @@ curl http://localhost:8000/health
 ```
 
 ### 2. `POST /predict`
-Accepts an image file upload, extracts the face, runs it through the CNN+FFT fusion model,
-and returns the prediction plus a base64-encoded Grad-CAM heatmap overlay.
+Analyzes an uploaded face image and returns a prediction along with a Grad-CAM heatmap.
+
+**Rate Limit:** 10 requests per minute per IP address. Exceeding this limit will return a `429 Too Many Requests` response.
 
 **Example Request:**
 ```bash
@@ -75,6 +76,12 @@ curl -X POST "https://deepfake-detector-k62g.onrender.com/predict" \
 - Accepted types: `image/jpeg`, `image/png`, `image/webp`, etc. (any `image/*` MIME type)
 - The uploaded image must contain a clearly visible face. If no face is detected, a
   `400 Bad Request` is returned.
+
+## Error Codes
+- `400 Bad Request`: If the file is not an image, or if no face could be detected by the Haar Cascade.
+- `413 Payload Too Large`: If the uploaded file exceeds the 10MB limit.
+- `429 Too Many Requests`: If the client exceeds the rate limit (10 requests/minute).
+- `500 Internal Server Error`: For any unexpected backend errors.
 
 ## Response Fields
 
