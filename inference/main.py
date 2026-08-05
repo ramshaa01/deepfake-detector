@@ -179,7 +179,7 @@ def load_resources():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "model": "day16_fusion_best.pth", "device": "cpu"}
+    return {"status": "ok", "model": "day16_fusion_best.pth", "device": "cpu", "version": "day31"}
 
 
 @app.post("/predict")
