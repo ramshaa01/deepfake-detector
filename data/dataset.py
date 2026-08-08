@@ -19,6 +19,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
+import numpy as np
 
 
 # --------------------------------------------------------------------------- #
@@ -118,3 +119,27 @@ class DeepfakeFaceDataset(Dataset):
 
         label = torch.tensor(self.LABEL_MAP[row["label"]], dtype=torch.long)
         return image, label
+
+class FusionDataset(Dataset):
+    """Dataset for fusion model combining image and frequency features."""
+    LABEL_MAP = {"real": 0, "fake": 1}
+    def __init__(self, df, faces_dir, freq_features, transform=None):
+        self.df = df.reset_index(drop=True)
+        self.faces_dir = Path(faces_dir)
+        self.transform = transform
+        # Normalize frequency features
+        freq = freq_features.astype(np.float32)
+        mean = freq.mean(axis=0)
+        std = freq.std(axis=0) + 1e-8
+        self.freq_norm = (freq - mean) / std
+    def __len__(self):
+        return len(self.df)
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        img_path = self.faces_dir / row["label"] / row["filename"]
+        image = Image.open(img_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        freq = torch.tensor(self.freq_norm[idx], dtype=torch.float32)
+        label = torch.tensor(self.LABEL_MAP[row["label"]], dtype=torch.long)
+        return image, freq, label

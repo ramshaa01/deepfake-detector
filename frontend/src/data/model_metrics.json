@@ -1,35 +1,63 @@
 {
-  "generated_at": "2026-08-02",
-  "note": "Metrics from held-out test set evaluation. See GitHub repo for full methodology.",
+  "generated_at": "2026-08-08",
+  "note": "Production metrics reflect the Haar-Cascade detection pipeline actually deployed on Render. Official MTCNN-based test metrics (used during training/evaluation) are higher and listed separately. See results/day32_final_summary.md for full methodology.",
+  "production_model": {
+    "checkpoint": "day32_finetuned_converged.pth",
+    "architecture": "EfficientNet-B0 (CNN-only, converged)",
+    "day": 32,
+    "detector": "Haar Cascade (production) / MTCNN (training+eval)",
+    "note": "Fusion (CNN+FFT) was rigorously evaluated and rejected: CNN-only wins on ROC-AUC (0.9372 vs 0.9328), wins precision at every matched-recall point, and is 17% faster (73ms vs 88ms). See results/day32_fusion_converged_metrics.md for the full evidence."
+  },
   "models": {
-    "baseline": {
-      "name": "EfficientNet-B0 (Fine-Tuned, CNN-only)",
+    "production_cnn": {
+      "name": "EfficientNet-B0 (CNN-only, Day 32 — Production)",
+      "day": 32,
+      "note_official": "Official test metrics via MTCNN face detector (training/eval pipeline)",
+      "accuracy_official": 0.8400,
+      "precision_official": 0.8072,
+      "recall_official": 0.8933,
+      "f1_official": 0.8481,
+      "roc_auc_official": 0.9372,
+      "note_production": "Measured production metrics via Haar Cascade face detector (deployed on Render). Reflects what users actually experience.",
+      "accuracy": 0.7800,
+      "precision": 0.8088,
+      "recall": 0.7333,
+      "f1": 0.7692,
+      "roc_auc": 0.8387,
+      "inference_ms": 73.5,
+      "haar_failure_rate": 0.047
+    },
+    "fusion_tested_not_adopted": {
+      "name": "Fusion CNN+FFT (Day 32 — Tested, Not Adopted)",
+      "day": 32,
+      "status": "tested_not_adopted",
+      "note": "Tested but not adopted — see project history for rigorous evaluation. CNN-only was selected because it wins on ROC-AUC, precision-at-recall, and inference speed.",
+      "accuracy": 0.8200,
+      "precision": 0.8400,
+      "recall": 0.8000,
+      "f1": 0.8200,
+      "roc_auc": 0.9328,
+      "inference_ms": 88.05
+    },
+    "baseline_day10": {
+      "name": "EfficientNet-B0 (Fine-Tuned, Day 10 — interrupted)",
       "day": 10,
+      "note": "Training was interrupted at epoch 7 before convergence. Superseded by Day 32 converged run.",
       "accuracy": 0.7800,
       "precision": 0.7800,
       "recall": 0.7800,
       "f1": 0.7800,
       "roc_auc": 0.8492,
-      "inference_ms": 57.61
-    },
-    "fusion": {
-      "name": "Fusion (CNN + FFT Features)",
-      "day": 16,
-      "accuracy": 0.7933,
-      "precision": 0.7558,
-      "recall": 0.8667,
-      "f1": 0.8075,
-      "roc_auc": 0.8544,
-      "inference_ms": 53.22
+      "inference_ms": 191.17
     }
   },
   "confusion_matrix": {
     "labels": ["Real", "Fake"],
     "matrix": [
-      [108, 42],
-      [20, 130]
+      [119, 31],
+      [16, 134]
     ],
-    "note": "Rows = True class, Cols = Predicted class. Fusion model on held-out test set."
+    "note": "Day 32 CNN-only model, MTCNN evaluation pipeline, held-out test set (n=300). Rows = True class, Cols = Predicted class."
   },
   "robustness": [
     { "condition": "Clean",          "family": "baseline", "accuracy": 79.33, "roc_auc": 0.8544, "retention": 100.0, "real_acc": 72.00, "fake_acc": 86.67 },

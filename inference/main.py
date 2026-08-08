@@ -21,9 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from data.dataset import get_val_test_transforms
-from model.evaluate_fusion import build_model_from_ckpt
-from model.train_fusion import FUSION_CKPT, FREQ_NPZ
-from model.frequency_features import extract_radial_profile
+import timm
 
 # App Setup
 app = FastAPI(title="Deepfake Detector Inference API")
@@ -95,12 +93,14 @@ def haar_extract_face(img_bytes: bytes) -> Image.Image | None:
     return Image.fromarray(face_rgb)
 
 
-def gradcam_overlay(model: nn.Module, img_tensor: torch.Tensor,
-                    freq_tensor: torch.Tensor, orig_np: np.ndarray) -> str:
-    """
-    Lightweight manual Grad-CAM — no external library needed.
-    Uses full model forward pass for correct scalar loss.
-    Returns base64-encoded JPEG of the overlay.
+def gradcam_overlay(model: nn.Module, img_tensor: torch.Tensor, freq_tensor: torch.Tensor | None, orig_np: np.ndarray) -> str:
+    """Generate a Grad‑CAM overlay for a CNN‑only model.
+
+    The original fusion implementation required both image and frequency tensors.
+    For the CNN‑only deployment we ignore ``freq_tensor`` and run a forward pass
+    with only ``img_tensor``. The function still registers hooks on the CNN’s
+    ``conv_head`` layer to capture activations and gradients, computes a heat‑map,
+    blends it with the original image, and returns a base64‑encoded JPEG.
     """
     activations = []
     gradients = []
@@ -111,14 +111,15 @@ def gradcam_overlay(model: nn.Module, img_tensor: torch.Tensor,
     def backward_hook(module, grad_input, grad_output):
         gradients.append(grad_output[0])
 
-    target_layer = model.cnn.conv_head
+    # The EfficientNet backbone stores its final conv block as ``conv_head``
+    target_layer = model.conv_head if hasattr(model, "conv_head") else model.features[-1]
     fh = target_layer.register_forward_hook(forward_hook)
     bh = target_layer.register_full_backward_hook(backward_hook)
 
     try:
-        img_in = img_tensor.clone().detach().requires_grad_(False)
-        freq_in = freq_tensor.clone().detach()
-        logit = model(img_in, freq_in)
+        img_in = img_tensor.clone().detach().requires_grad_(True)
+        # Forward pass – ignore freq_tensor for CNN‑only model
+        logit = model(img_in)
         model.zero_grad()
         logit.backward()
 
@@ -150,7 +151,6 @@ def gradcam_overlay(model: nn.Module, img_tensor: torch.Tensor,
         buf = io.BytesIO()
         overlay_img.save(buf, format="JPEG", quality=80)
         return base64.b64encode(buf.getvalue()).decode("utf-8")
-
     finally:
         fh.remove()
         bh.remove()
@@ -158,28 +158,30 @@ def gradcam_overlay(model: nn.Module, img_tensor: torch.Tensor,
 
 @app.on_event("startup")
 def load_resources():
-    global MODEL, DEVICE, TRANSFORM, FREQ_MEAN, FREQ_STD
+    global MODEL, DEVICE, TRANSFORM
 
     torch.set_num_threads(1)
     DEVICE = torch.device("cpu")
-    print("Loading fusion model onto cpu...")
+    print("Loading CNN‑only model onto cpu...")
 
-    MODEL = build_model_from_ckpt(FUSION_CKPT, DEVICE)
-    MODEL.eval()
+    # Load the converged CNN‑only checkpoint (day32_finetuned_converged.pth)
+    ckpt_path = ROOT / "model" / "checkpoints" / "day32_finetuned_converged.pth"
+    model = timm.create_model("efficientnet_b0", pretrained=False)
+    in_features = model.classifier.in_features
+    model.classifier = nn.Linear(in_features, 1)
+    ckpt = torch.load(ckpt_path, map_location=DEVICE)
+    model.load_state_dict(ckpt["model_state_dict"])
+    model.to(DEVICE)
+    model.eval()
+    MODEL = model
 
     TRANSFORM = get_val_test_transforms()
-
-    print(f"Loading frequency normalization stats from {FREQ_NPZ}")
-    npz = np.load(FREQ_NPZ)
-    X_test = npz["X_test"].astype(np.float32)
-    FREQ_MEAN = X_test.mean(axis=0)
-    FREQ_STD = X_test.std(axis=0) + 1e-8
     print("Resources loaded successfully.")
 
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "model": "day16_fusion_best.pth", "device": "cpu", "version": "day31-v2"}
+    return {"status": "ok", "model": "day32_finetuned_converged.pth", "device": "cpu", "version": "day32-prod"}
 
 @app.get("/ip")
 def get_ip(request: Request):
@@ -200,7 +202,7 @@ async def predict(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File too large. Limit is 10MB.")
 
     try:
-        # Extract face (Haar only — no MTCNN/TF needed)
+        # Extract face using Haar Cascade (no MTCNN/TF needed)
         face_pil = haar_extract_face(contents)
         if face_pil is None:
             raise HTTPException(status_code=400, detail="No face detected in the uploaded image. Please upload an image containing a clear, visible face.")
@@ -210,31 +212,23 @@ async def predict(request: Request, file: UploadFile = File(...)):
         img_tensor = TRANSFORM(face_pil).unsqueeze(0).to(DEVICE)
         orig_np = np.array(face_pil.resize((224, 224))) / 255.0
 
-        # Save face to temp file for FFT extraction (requires a path)
-        tmp_path = ROOT / "inference" / "tmp" / "face_tmp.jpg"
-        tmp_path.parent.mkdir(parents=True, exist_ok=True)
-        face_pil.save(str(tmp_path), format="JPEG")
-
-        freq_raw = extract_radial_profile(str(tmp_path))
-        freq_norm = (freq_raw.astype(np.float32) - FREQ_MEAN) / FREQ_STD
-        freq_tensor = torch.tensor(freq_norm, dtype=torch.float32).unsqueeze(0).to(DEVICE)
-
+        # Inference with CNN‑only model
         with torch.no_grad():
-            logit = MODEL(img_tensor, freq_tensor)
+            logit = MODEL(img_tensor)
             prob = torch.sigmoid(logit).item()
             pred_label = "fake" if prob > 0.5 else "real"
 
         t1 = time.time()
         inference_ms = round((t1 - t0) * 1000, 2)
 
-        # Grad-CAM overlay (manual, no external lib)
+        # Grad‑CAM overlay (manual, no external lib)
         try:
             with torch.enable_grad():
-                # Temporarily re-enable grads on CNN params for Grad-CAM
-                for p in MODEL.cnn.parameters():
+                # Ensure gradients are enabled for the CNN parameters
+                for p in MODEL.parameters():
                     p.requires_grad_(True)
-                heatmap_b64 = gradcam_overlay(MODEL, img_tensor.clone(), freq_tensor.clone(), orig_np)
-                for p in MODEL.cnn.parameters():
+                heatmap_b64 = gradcam_overlay(MODEL, img_tensor.clone(), None, orig_np)
+                for p in MODEL.parameters():
                     p.requires_grad_(False)
         except Exception:
             heatmap_b64 = None
@@ -251,8 +245,3 @@ async def predict(request: Request, file: UploadFile = File(...)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        try:
-            tmp_path.unlink(missing_ok=True)
-        except Exception:
-            pass

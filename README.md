@@ -38,65 +38,65 @@ Uploaded Image
       ▼
 Face Extraction (MTCNN training / Haar Cascade production)
       │ 224×224 face crop
-      ┌─────────────┴──────────────────┐
-      ▼                                ▼
-EfficientNet-B0 (ImageNet pre-trained) │  FFT Radial Profile Extractor
-  → fine-tuned on face crops           │  → 16-bin radial spectrum
-  → 1280-dim embedding                 │  → z-score normalised (16-dim)
-      │                                │
-      └──────────────┬─────────────────┘
-                     ▼
-              Fusion MLP (1296 → 256 → 1)
-                     │
-                  Sigmoid logit → "real" / "fake"
-                     │
-              Grad-CAM heatmap (manual hook-based, conv_head layer)
+      ▼
+EfficientNet-B0 (ImageNet pre-trained)
+  → fine-tuned end-to-end to convergence (30 epochs)
+  → classifier head: Linear(1280 → 1)
+      │
+   Sigmoid logit → "real" / "fake"
+      │
+   Grad-CAM heatmap (manual hook-based, conv_head layer)
 ```
 
 ### Model Selection Decision
 
-Three model iterations were evaluated on an identical held-out test set (300 images, balanced). The fusion model (CNN + FFT) was selected as the production model because it achieves the highest accuracy and ranking metrics, despite a latency cost:
+Four model iterations were trained and rigorously evaluated on an identical held-out test set (300 images, balanced). The **converged CNN-only model** (Day 32) is the production model.
 
-| | Day 7 (Head-only CNN) | Day 10 (Fine-tuned CNN) | Day 16 (CNN + FFT Fusion) |
-|---|---|---|---|
-| Accuracy | 75.67% | 78.00% | **79.33%** |
-| ROC-AUC  | 0.8249 | 0.8492 | **0.8544** |
-| Precision | 75.16% | 78.00% | 75.58% |
-| Recall   | 76.67% | 78.00% | **86.67%** |
-| F1 Score | 75.91% | 78.00% | **80.75%** |
-| Latency (batch=1, CPU) | 195.31 ms | 191.17 ms | 241.24 ms (+26%) |
+| | Day 7 (Head-only) | Day 10 (Fine-tuned, interrupted) | Day 16 (CNN+FFT Fusion) | **Day 32 CNN-only (converged)** |
+|---|---|---|---|---|
+| Accuracy | 75.67% | 78.00% | 79.33% | **84.00%** |
+| ROC-AUC | 0.8249 | 0.8492 | 0.8544 | **0.9372** |
+| Precision | 75.16% | 78.00% | 75.58% | **80.72%** |
+| Recall | 76.67% | 78.00% | 86.67% | **89.33%** |
+| F1 Score | 75.91% | 78.00% | 80.75% | **84.81%** |
+| Latency (batch=1, CPU) | ~195 ms | ~191 ms | ~241 ms | **73.5 ms** |
+| **Status** | Superseded | Superseded | Evaluated, rejected | ✅ **PRODUCTION** |
 
-> **Latency note:** The fusion model's single-image latency of ~241 ms was independently benchmarked under standardised deployment conditions (single-image batch, on-the-fly FFT extraction from disk). The ~53 ms figure in `day16_fusion_metrics.md` reflects batch-evaluation throughput (batch=32, pre-computed FFT from `.npz`) and is not representative of API deployment latency. See [results/day16-17_timing_investigation.md](results/day16-17_timing_investigation.md) for full methodology.
+**Why not fusion?** A CNN+FFT fusion head was also retrained on top of the Day 32 converged CNN backbone and compared using a matched-operating-point analysis (not just default-threshold accuracy). The evidence is unambiguous:
 
-The recall lift (+8.67% over the CNN-only at default threshold) is partially a threshold artefact — when the CNN-only threshold is tuned to match the fusion model's 86.67% recall, it achieves 73.03% precision vs. the fusion's 75.58% (+2.55pp advantage). The fusion model also shows a modest but consistent ROC-AUC and PR-AUC improvement. For a safety-sensitive application where false negatives (real faces missed as synthetic) are more costly than false positives, the high-recall profile of the fusion model is the appropriate choice.
+- **ROC-AUC** (threshold-independent ranking): CNN-only wins, 0.9372 vs 0.9328.
+- **Precision at matched recall** (tested at 0.80, 0.85, 0.87 recall): CNN-only wins at all three points.
+- **Latency**: CNN-only is 17% faster (73.5 ms vs 88.05 ms at batch=1, CPU).
+
+The fusion model's slightly higher accuracy at the default threshold is a threshold artefact: if it genuinely ranked better, it would win on ROC-AUC. It does not. The converged CNN-only model is the strictly correct choice — it improved by completing training properly, not by adding complexity. See [results/day32_final_summary.md](results/day32_final_summary.md) for the full evidence table.
 
 ---
 
 ## Results
 
-### Final Model Performance (Fusion, held-out test set, n=300)
+### Final Model Performance (CNN-only, Day 32 converged, MTCNN pipeline, n=300)
 
-| Metric | Value |
-|---|---|
-| **Accuracy** | **79.33%** |
-| **ROC-AUC** | **0.8544** |
-| Precision | 0.7558 |
-| Recall | 0.8667 |
-| F1 Score | 0.8075 |
+| Metric | Official (MTCNN) | Production (Haar Cascade) |
+|---|---|---|
+| **Accuracy** | **84.00%** | 78.00% |
+| **ROC-AUC** | **0.9372** | 0.8387 |
+| Precision | 0.8072 | 0.8088 |
+| Recall | 0.8933 | 0.7333 |
+| F1 Score | 0.8481 | 0.7692 |
 
-**Confusion Matrix** (rows = True class, cols = Predicted class; 0=Real, 1=Fake):
+> **Two numbers explained:** The Official (MTCNN) figure is the controlled evaluation metric — same detector used during training. The Production (Haar Cascade) figure is measured via `model/evaluate_haar.py`, replicating the exact pipeline deployed on Render, including Haar detection failures penalised as incorrect predictions. The gap is the Haar Cascade delta: 14/300 (4.7%) detection failures + crop quality differences. See [results/day32_detector_delta_v2.md](results/day32_detector_delta_v2.md).
+
+**Confusion Matrix** (rows = True class, cols = Predicted class; 0=Real, 1=Fake, MTCNN pipeline):
 
 ```
               Pred Real  Pred Fake
-True Real  │   108    │    42   │
-True Fake  │    20    │   130   │
+True Real  │   119    │    31   │
+True Fake  │    16    │   134   │
 ```
-
-- True Real (correct): 108 · False Fake (FN): 42 · False Real (FP): 20 · True Fake (correct): 130
 
 ### Robustness Under Perturbations
 
-All 9 perturbation conditions evaluated on the same 300-image test set. Retention % = accuracy relative to clean baseline (79.33%).
+All 9 perturbation conditions evaluated on the same 300-image test set. Retention % = accuracy relative to clean baseline (79.33%). **Note:** Robustness suite was evaluated against the Day 16 fusion model; re-evaluation against the Day 32 CNN-only model is a known gap.
 
 | Condition | Accuracy | ROC-AUC | Retention % | Real Acc | Fake Acc |
 |---|---|---|---|---|---|
@@ -111,7 +111,7 @@ All 9 perturbation conditions evaluated on the same 300-image test set. Retentio
 | Resize 0.5× | 65.33% | 0.7128 | 82.4% | 46.00% | 84.67% |
 | **Resize 0.25×** | **52.33%** | **0.5244** | **66.0%** | **13.33%** | 91.33% |
 
-Bold rows mark catastrophic-collapse conditions (see Known Limitations).
+Bold rows mark catastrophic-collapse conditions (see Known Limitations). Robustness suite was evaluated against the Day 16 fusion model; these numbers are indicative for the production CNN-only model but have not been re-measured.
 
 ### Key Visuals
 
@@ -131,15 +131,15 @@ Grad-CAM analysis (Day 13) revealed that the model has learned a **spurious shor
 
 ### 2. Catastrophic False-Positive Collapse Under Blur / Heavy Downscaling
 
-The fusion model relies on high-frequency spectral artefacts introduced by GAN upsampling. Heavy Gaussian blur (σ≥2) or extreme downscaling (0.25×) destroys those artefacts, causing **real image accuracy to collapse to 10–23%** while fake accuracy remains high (82–98%). Under these conditions the model effectively predicts everything as fake. This is not recoverable by threshold tuning — the spectral signal the model learned simply does not survive the degradation.
+Heavy Gaussian blur (σ≥2) or extreme downscaling (0.25×) causes **real image accuracy to collapse to 10–23%** while fake accuracy remains high (82–98%). Under these conditions the model effectively predicts everything as fake. This is not recoverable by threshold tuning. Originally attributed to the FFT spectral signal being destroyed by blur; the CNN-only model likely has similar sensitivity to the underlying texture features.
 
 ### 3. Production Detector Accuracy Drop (Haar Cascade Delta)
 
-In local training and evaluation, the highly accurate MTCNN deep learning model was used for face extraction (yielding the official 79.33% accuracy). However, to deploy the API within Render's 512 MB free-tier RAM limit, MTCNN and TensorFlow had to be replaced with a lightweight OpenCV Haar Cascade detector.
+In local training and evaluation, the highly accurate MTCNN deep learning model is used for face extraction (official test accuracy: **84.00%**). To deploy the API within Render's 512 MB free-tier RAM limit, MTCNN and TensorFlow were replaced with OpenCV Haar Cascade.
 
-**Measured Production Impact (Day 31):**
-- **Detection Failures:** Haar Cascade completely fails to detect a face in 14/300 test images (4.7%). These result in a `400 Bad Request`.
-- **System Accuracy Drop:** When detection failures are appropriately penalised as missed predictions, overall system accuracy in production drops to **73.00%** (a -6.33% delta from the official 79.33% MTCNN metric), and ROC-AUC drops to **0.7527** (from 0.8544).
+**Measured Production Impact (Day 32, CNN-only model):**
+- **Detection Failures:** Haar Cascade fails to detect a face in 14/300 test images (4.7%). These result in a `400 Bad Request`.
+- **System Accuracy Drop:** When failures are appropriately penalised, production accuracy is **78.00%** (a -6.00pp delta from the official 84.00% MTCNN metric) and ROC-AUC drops to **0.8387** (from 0.9372). Full delta: [results/day32_detector_delta_v2.md](results/day32_detector_delta_v2.md).
 
 ### 4. Render Free-Tier Cold Start
 
@@ -269,7 +269,7 @@ deepfake-detector/
 
 ## Resume Line
 
-> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 fused with FFT frequency features (79.33% test accuracy, 0.8544 ROC-AUC, 86.67% recall on held-out test set of 300 balanced faces). Documented known failure modes: eyeglasses false-positive bias (confirmed via Grad-CAM), and catastrophic accuracy collapse under heavy blur/downscaling (Real accuracy drops to 10% at σ=4). Full-stack deployment: FastAPI backend on Render, React frontend on Vercel; backend CPU inference ~241 ms/image (Day 16-17 benchmark), live end-to-end verified.
+> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 to convergence (84.00% test accuracy, 0.9372 ROC-AUC on held-out test set of 300 balanced faces; 78.00% measured production accuracy via Haar Cascade). Rigorously evaluated CNN+FFT fusion architecture and rejected it via matched-operating-point analysis — CNN-only wins on ROC-AUC, precision at every tested recall level, and inference speed (73ms vs 88ms). Documented failure modes: eyeglasses false-positive bias (Grad-CAM confirmed), catastrophic collapse under heavy blur/downscaling, and Haar Cascade production delta (–6pp, fully measured). Full-stack deployment: FastAPI on Render, React on Vercel; end-to-end latency ~2.4s.
 
 ---
 
@@ -281,7 +281,7 @@ deepfake-detector/
 | 2–3 | Dataset curation | MTCNN face extraction, 2,000 balanced crops (1k real / 1k fake) |
 | 4–5 | DataLoader + EDA | PyTorch Dataset, class balance verified, sample grids |
 | 6–8 | Head-only training | EfficientNet-B0 classifier head, 75.67% val accuracy |
-| 9–10 | Full fine-tuning | All layers unfrozen, 78.00% test accuracy, ROC-AUC 0.8492 |
+| 9–10 | Full fine-tuning (interrupted) | All layers unfrozen, 78.00% test accuracy; run cut at epoch 7 before convergence |
 | 11–12 | Error analysis | Hardest misclassifications catalogued; glasses + shadow failure modes found |
 | 13–14 | Grad-CAM | Interpretability via conv_head hooks; glasses bias confirmed visually |
 | 15 | FFT features | 16-bin radial spectral profile; FAKE shows peaks at 0.3–0.5 normalised freq |
@@ -293,5 +293,8 @@ deepfake-detector/
 | 25 | React frontend | Upload UI, cold-start handling, Grad-CAM display |
 | 26 | Frontend polish | Recharts confidence gauge, accessibility, responsive layout |
 | 27 | Metrics dashboard | Stat cards, confusion matrix, robustness chart, limitations callout |
-| 28 | Final README | This document |
+| 28 | Final README | Full project documentation |
 | 29 | Vercel deployment | Frontend live at deepfake-detector-zeta.vercel.app; all 6 e2e tests pass |
+| 30 | Project wrap-up | `results/final_metrics_summary.md`, post-launch review |
+| 31 | Haar Cascade delta | MTCNN→Haar accuracy gap measured: –6.33pp on fusion model |
+| **32** | **Convergence + model selection** | **CNN fine-tuning re-run to 30-ep convergence (84%/0.9372); fusion evaluated and rejected via matched-OP analysis; CNN-only deployed as production; Haar delta re-measured: –6.00pp** |
