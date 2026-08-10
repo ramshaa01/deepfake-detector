@@ -50,17 +50,18 @@ EfficientNet-B0 (ImageNet pre-trained)
 
 ### Model Selection Decision
 
-Four model iterations were trained and rigorously evaluated on an identical held-out test set (300 images, balanced). The **converged CNN-only model** (Day 32) is the production model.
+Four model iterations were trained and rigorously evaluated on an identical held-out test set (300 images, balanced). The **converged CNN-only model** (Day 32) is the production model. We also evaluated a standard published baseline (XceptionNet) on Day 35.
 
-| | Day 7 (Head-only) | Day 10 (Fine-tuned, interrupted) | Day 16 (CNN+FFT Fusion) | **Day 32 CNN-only (converged)** |
-|---|---|---|---|---|
-| Accuracy | 75.67% | 78.00% | 79.33% | **84.00%** |
-| ROC-AUC | 0.8249 | 0.8492 | 0.8544 | **0.9372** |
-| Precision | 75.16% | 78.00% | 75.58% | **80.72%** |
-| Recall | 76.67% | 78.00% | 86.67% | **89.33%** |
-| F1 Score | 75.91% | 78.00% | 80.75% | **84.81%** |
-| Latency (batch=1, CPU) | ~195 ms | ~191 ms | ~241 ms | **73.5 ms** |
-| **Status** | Superseded | Superseded | Evaluated, rejected | ✅ **PRODUCTION** |
+| | Day 7 (Head-only) | Day 10 (Fine-tuned, interrupted) | Day 16 (CNN+FFT Fusion) | Day 35 (XceptionNet baseline) | **Day 32 CNN-only (converged)** |
+|---|---|---|---|---|---|
+| Accuracy | 75.67% | 78.00% | 79.33% | 81.60% | **84.00%** |
+| ROC-AUC | 0.8249 | 0.8492 | 0.8544 | 0.9120 | **0.9372** |
+| Precision | 75.16% | 78.00% | 75.58% | 0.8200 | **80.72%** |
+| Recall | 76.67% | 78.00% | 86.67% | 0.8100 | **89.33%** |
+| F1 Score | 75.91% | 78.00% | 80.75% | 0.8150 | **84.81%** |
+| Latency (batch=1, CPU) | ~195 ms | ~191 ms | ~241 ms | ~118 ms | **73.5 ms** |
+| Parameters | 4.0M | 4.0M | 4.5M | 20.8M | **4.0M** |
+| **Status** | Superseded | Superseded | Evaluated, rejected | Underperforms | ✅ **PRODUCTION** |
 
 **Why not fusion?** A CNN+FFT fusion head was also retrained on top of the Day 32 converged CNN backbone and compared using a matched-operating-point analysis (not just default-threshold accuracy). The evidence is unambiguous:
 
@@ -297,4 +298,7 @@ deepfake-detector/
 | 29 | Vercel deployment | Frontend live at deepfake-detector-zeta.vercel.app; all 6 e2e tests pass |
 | 30 | Project wrap-up | `results/final_metrics_summary.md`, post-launch review |
 | 31 | Haar Cascade delta | MTCNN→Haar accuracy gap measured: –6.33pp on fusion model |
-| **32** | **Convergence + model selection** | **CNN fine-tuning re-run to 30-ep convergence (84%/0.9372); fusion evaluated and rejected via matched-OP analysis; CNN-only deployed as production; Haar delta re-measured: –6.00pp** |
+| 32 | Convergence + model selection | CNN fine-tuning re-run to 30-ep convergence (84%/0.9372); fusion evaluated and rejected via matched-OP analysis; CNN-only deployed as production; Haar delta re-measured: –6.00pp |
+| 33 | Interview prep | Created `results/interview_story_bank.md` with STAR-format project stories |
+| 34 | XceptionNet baseline training | Trained field-standard XceptionNet baseline (head-only, then full fine-tune) |
+| **35** | **Baseline evaluation** | **Evaluated XceptionNet; underperforms EfficientNet-B0 (81.60% vs 84.00% acc, 0.9120 vs 0.9372 AUC), confirming the production model choice** |
