@@ -16,6 +16,9 @@ data/processed/
 data/raw_samples/*
 data/faces_extracted/*
 data/perturbed/
+data/day36_ood_raw/
+data/day36_sg3_raw/
+data/cross_generator/
 
 # Keep important files
 !data/raw_samples/.gitkeep

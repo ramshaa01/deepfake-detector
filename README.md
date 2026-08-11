@@ -146,9 +146,18 @@ In local training and evaluation, the highly accurate MTCNN deep learning model 
 
 The live API backend runs on Render's free tier, which **spins down after 15 minutes of inactivity**. The first request after an idle period takes **30–90 seconds** to respond while the container restarts and loads the model. Subsequent requests within the same session are fast (~240–400 ms end-to-end). The frontend handles this with a visible "waking up the server" notice after 5 seconds.
 
-### 4. Scope: Synthesised Faces Only
+### 5. Scope: StyleGAN2 Training Distribution Only (Cross-Generator Failure)
 
-This model does not detect video deepfakes (identity-swap manipulations, face reenactment). It was trained and evaluated on GAN-synthesised full face images only. Attempting to use it on video deepfakes, partial face manipulations, or other generator architectures (Stable Diffusion, DALL·E) will yield unreliable results.
+This model's detection capability is strictly scoped to faces resembling its **StyleGAN2 training distribution**, not general "AI-generated face" detection. It does **not** detect video deepfakes (identity swaps, reenactment) or generalize to unseen architecture families.
+
+**Empirical Cross-Generator Test (Day 36, StyleGAN3 OOD Evaluation):**
+When evaluated on a clean held-out set of StyleGAN3 generated faces (`troykueh/real-vs-fake-faces-stylegan3`, n=150):
+- **Overall Accuracy collapsed from 78.00% to 46.67%** (-31.33pp drop, below random guessing).
+- **ROC-AUC dropped to 0.5513** (-0.2874 drop, near random chance).
+- **Fake Image Accuracy collapsed to 4.00%** (96.0% of StyleGAN3 fakes misclassified as real photos).
+- **Real Image Accuracy remained 89.33%** (confirming real photo recognition works).
+
+**Root Cause:** The model learned StyleGAN2-specific spectral artifacts (grid-patterns from transposed convolutions) rather than universal synthetic features. StyleGAN3's alias-free continuous coordinate synthesis suppresses these artifacts, rendering the detector blind. See [results/day36_cross_generator_generalization.md](results/day36_cross_generator_generalization.md).
 
 ---
 
@@ -301,4 +310,5 @@ deepfake-detector/
 | 32 | Convergence + model selection | CNN fine-tuning re-run to 30-ep convergence (84%/0.9372); fusion evaluated and rejected via matched-OP analysis; CNN-only deployed as production; Haar delta re-measured: –6.00pp |
 | 33 | Interview prep | Created `results/interview_story_bank.md` with STAR-format project stories |
 | 34 | XceptionNet baseline training | Trained field-standard XceptionNet baseline (head-only, then full fine-tune) |
-| **35** | **Baseline evaluation** | **Evaluated XceptionNet; underperforms EfficientNet-B0 (81.60% vs 84.00% acc, 0.9120 vs 0.9372 AUC), confirming the production model choice** |
+| 35 | Baseline evaluation | Evaluated XceptionNet; underperforms EfficientNet-B0 (81.60% vs 84.00% acc, 0.9120 vs 0.9372 AUC), confirming the production model choice |
+| **36** | **Cross-generator generalization** | **Evaluated on StyleGAN3 (OOD); accuracy collapsed to 46.67% (fake acc 4.00%, ROC-AUC 0.5513), proving model is scoped to StyleGAN2 distribution** |
