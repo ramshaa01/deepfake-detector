@@ -14,6 +14,7 @@
 | **Official ROC-AUC** | 0.9372 |
 | **Production accuracy** | 78.00% (Haar Cascade face detector, same test set) |
 | **Production ROC-AUC** | 0.8387 |
+| **Cross-generator generalization** | 46.67% accuracy (4.00% on fakes, 0.5513 AUC) on StyleGAN3 (OOD), proving the model learned StyleGAN2-specific grid artifacts |
 | **Why the gap exists** | Render's 512MB free-tier RAM cannot fit MTCNN/TensorFlow; switched to OpenCV Haar Cascade, which fails to detect 4.7% of faces and crops differently on the rest — fully measured, not estimated |
 | **Why fusion was rejected** | CNN-only wins ROC-AUC (0.9372 vs 0.9328), wins precision at every matched-recall point, and is 17% faster — fusion's higher default-threshold accuracy was a threshold artifact, not a genuine ranking gain |
 
@@ -176,6 +177,22 @@ classification problems.
 
 ---
 
+### Story E — The Cross-Generator Generalization Failure (Day 36)
+
+**Situation.**
+After confirming the CNN-only model as the best production architecture (84% test accuracy, 78% production accuracy via Haar Cascade), the most glaring unknown was its out-of-distribution (OOD) performance. Every image it had ever seen was a StyleGAN2 fake. I needed to know if it could detect synthetic faces generally, or only StyleGAN2 fakes.
+
+**Task.**
+I needed to construct a clean generalization test. I sought a dataset with real photos from the same domain (FFHQ) but fake photos from a completely different generator architecture, specifically to isolate the generator shift without confounding it with a new real-photo domain. 
+
+**Action.**
+I initially downloaded the "Deepfake Detection Dataset 2026" from Kaggle. Before running the full evaluation, I inspected the data and caught a catastrophic mislabeling error: the 3,767 "FAKE" images were actually real stock photos served dynamically from `randomuser.me`. If I had blindly run the test, the results would have been meaningless. I discarded it, documented the error, and switched to a clean StyleGAN3 dataset (`troykueh/real-vs-fake-faces-stylegan3`). I ran a reproducible, balanced sample (75 real, 75 fake) through the exact production Haar Cascade pipeline.
+
+**Result.**
+I found and quantified my own model's real-world scope limit. Overall accuracy collapsed from 78.00% to 46.67%, and ROC-AUC plummeted from 0.8387 to 0.5513 (essentially random guessing). Critically, fake-detection accuracy was just 4.00%—the model predicted 96% of StyleGAN3 fakes as real photos. I provided a testable, mechanistic explanation for why: the model had learned StyleGAN2's specific transposed-convolution grid artifacts. Because StyleGAN3 uses an alias-free continuous coordinate design that suppresses those artifacts, the detector was blind to them. I updated the README to explicitly scope the model's capabilities to "faces resembling its StyleGAN2 training distribution."
+
+---
+
 ## Three Honest "What Would You Improve" Answers
 
 1. **No published baseline comparison.** I never compared against XceptionNet, which is
@@ -183,11 +200,7 @@ classification problems.
    meaningful relative to my own earlier checkpoints — I can't tell you where it sits
    on the published literature leaderboard.
 
-2. **No cross-generator generalization test.** Every image this model has ever seen at
-   train, val, or test time came from either FFHQ (real) or StyleGAN2 (fake). I have no
-   idea how it performs on StyleGAN3, diffusion-model-generated faces, or any other
-   generator. For a real deployment, that generalization gap is the most important
-   unknown.
+2. **Expansion to diverse generator architectures.** My Day 36 cross-generator evaluation proved that a StyleGAN2-trained model completely fails to detect StyleGAN3 fakes (fake accuracy collapsed to 4%). To build a robust, general-purpose deepfake detector, I need to train on a multi-generator dataset (Stable Diffusion, Midjourney, various GANs) rather than relying on a single architecture's artifacts.
 
 3. **The production accuracy gap is an engineering problem, not an inherent limit.**
    Switching from MTCNN to Haar Cascade costs 6 percentage points of accuracy (84%
