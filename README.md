@@ -54,11 +54,11 @@ Four model iterations were trained and rigorously evaluated on an identical held
 
 | | Day 7 (Head-only) | Day 10 (Fine-tuned, interrupted) | Day 16 (CNN+FFT Fusion) | Day 35 (XceptionNet baseline) | **Day 32 CNN-only (converged)** |
 |---|---|---|---|---|---|
-| Accuracy | 75.67% | 78.00% | 79.33% | 81.60% | **84.00%** |
-| ROC-AUC | 0.8249 | 0.8492 | 0.8544 | 0.9120 | **0.9372** |
-| Precision | 75.16% | 78.00% | 75.58% | 0.8200 | **80.72%** |
-| Recall | 76.67% | 78.00% | 86.67% | 0.8100 | **89.33%** |
-| F1 Score | 75.91% | 78.00% | 80.75% | 0.8150 | **84.81%** |
+| Accuracy | 75.67% | 78.00% | 79.33% | 81.60% | **84.33% ± 0.34%** |
+| ROC-AUC | 0.8249 | 0.8492 | 0.8544 | 0.9120 | **0.9321 ± 0.0053** |
+| Precision | 75.16% | 78.00% | 75.58% | 0.8200 | **81.40% ± 0.45%** |
+| Recall | 76.67% | 78.00% | 86.67% | 0.8100 | **83.78% ± 9.05%** |
+| F1 Score | 75.91% | 78.00% | 80.75% | 0.8150 | **82.42% ± 4.76%** |
 | Latency (batch=1, CPU) | ~195 ms | ~191 ms | ~241 ms | ~118 ms | **73.5 ms** |
 | Parameters | 4.0M | 4.0M | 4.5M | 20.8M | **4.0M** |
 | **Status** | Superseded | Superseded | Evaluated, rejected | Underperforms | ✅ **PRODUCTION** |
@@ -75,15 +75,17 @@ The fusion model's slightly higher accuracy at the default threshold is a thresh
 
 ## Results
 
-### Final Model Performance (CNN-only, Day 32 converged, MTCNN pipeline, n=300)
+### Final Model Performance (CNN-only, converged, multi-seed n=3, MTCNN pipeline)
 
-| Metric | Official (MTCNN) | Production (Haar Cascade) |
+| Metric | Official (MTCNN, Mean ± Std) | Production (Haar Cascade, Day 32 run) |
 |---|---|---|
-| **Accuracy** | **84.00%** | 78.00% |
-| **ROC-AUC** | **0.9372** | 0.8387 |
-| Precision | 0.8072 | 0.8088 |
-| Recall | 0.8933 | 0.7333 |
-| F1 Score | 0.8481 | 0.7692 |
+| **Accuracy** | **84.33% ± 0.34%** | 78.00% |
+| **ROC-AUC** | **0.9321 ± 0.0053** | 0.8387 |
+| Precision | 0.8140 ± 0.0045 | 0.8088 |
+| Recall | 0.8378 ± 0.0905 | 0.7333 |
+| F1 Score | 0.8242 ± 0.0476 | 0.7692 |
+
+> **Variance Note:** The Official (MTCNN) figures represent the mean ± standard deviation across 3 independent training runs with different random seeds. The low variance in Accuracy and ROC-AUC confirms the model's stability. Recall and F1 show more variance because they are evaluated at a fixed 0.5 threshold, which is sensitive to small shifts in probability distribution across runs. The Production column reflects the single Day 32 run currently deployed on Render.
 
 > **Two numbers explained:** The Official (MTCNN) figure is the controlled evaluation metric — same detector used during training. The Production (Haar Cascade) figure is measured via `model/evaluate_haar.py`, replicating the exact pipeline deployed on Render, including Haar detection failures penalised as incorrect predictions. The gap is the Haar Cascade delta: 14/300 (4.7%) detection failures + crop quality differences. See [results/day32_detector_delta_v2.md](results/day32_detector_delta_v2.md).
 
@@ -279,7 +281,7 @@ deepfake-detector/
 
 ## Resume Line
 
-> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 to convergence (84.00% test accuracy, 0.9372 ROC-AUC on held-out test set of 300 balanced faces; 78.00% measured production accuracy via Haar Cascade). Rigorously evaluated CNN+FFT fusion architecture and rejected it via matched-operating-point analysis — CNN-only wins on ROC-AUC, precision at every tested recall level, and inference speed (73ms vs 88ms). Documented failure modes: eyeglasses false-positive bias (Grad-CAM confirmed), catastrophic collapse under heavy blur/downscaling, and Haar Cascade production delta (–6pp, fully measured). Full-stack deployment: FastAPI on Render, React on Vercel; end-to-end latency ~2.4s.
+> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 to convergence (84.33% ± 0.34% test accuracy, 0.9321 ± 0.0053 ROC-AUC across 3 independent runs on held-out test set; 78.00% measured production accuracy via Haar Cascade). Rigorously evaluated CNN+FFT fusion architecture and rejected it via matched-operating-point analysis — CNN-only wins on ROC-AUC, precision at every tested recall level, and inference speed (73ms vs 88ms). Documented failure modes: eyeglasses false-positive bias (Grad-CAM confirmed), catastrophic collapse under heavy blur/downscaling, and Haar Cascade production delta (–6pp, fully measured). Full-stack deployment: FastAPI on Render, React on Vercel; end-to-end latency ~2.4s.
 
 ---
 

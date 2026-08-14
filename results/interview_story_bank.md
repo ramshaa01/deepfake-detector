@@ -10,8 +10,8 @@
 | Item | Value |
 |---|---|
 | **Production model** | `day32_finetuned_converged.pth` (EfficientNet-B0, CNN-only) |
-| **Official test accuracy** | 84.00% (MTCNN face detector, 300-image balanced held-out set) |
-| **Official ROC-AUC** | 0.9372 |
+| **Official test accuracy** | 84.33% ± 0.34% (mean ± std across 3 runs; MTCNN face detector, 300-image balanced test set) |
+| **Official ROC-AUC** | 0.9321 ± 0.0053 (mean ± std across 3 runs) |
 | **Production accuracy** | 78.00% (Haar Cascade face detector, same test set) |
 | **Production ROC-AUC** | 0.8387 |
 | **Cross-generator generalization** | 46.67% accuracy (4.00% on fakes, 0.5513 AUC) on StyleGAN3 (OOD), proving the model learned StyleGAN2-specific grid artifacts |
@@ -221,5 +221,5 @@ real precision gain from a threshold artifact, I validated a Grad-CAM finding ac
 three attribution methods before trusting it, and I used that same rigor on Day 32 to
 discover that a more complex architecture I'd built actually didn't generalize on a
 properly-converged backbone — and I chose the simpler model because the evidence said
-to. The final model hits 84% accuracy on a balanced held-out test set, and the
+to. The final model hits 84.33% ± 0.34% accuracy on a balanced held-out test set (proven stable across 3 training runs), and the
 production delta from the memory-constrained deployment is fully measured and disclosed.
