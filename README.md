@@ -2,6 +2,8 @@
 
 > **Live Demo:** [Frontend UI](https://deepfake-detector-zeta.vercel.app) · [Backend API](https://deepfake-detector-k62g.onrender.com/docs)
 > 
+> **Documentation:** [Model Card](MODEL_CARD.md) · [Dataset Card](DATASET_CARD.md)
+> 
 > ⚠️ **Cold-start notice:** The Render free-tier backend sleeps after 15 min of inactivity. The first request after idle will take 30–90 seconds. The frontend displays a warning automatically.
 
 ## Problem Statement
@@ -32,20 +34,45 @@ With the proliferation of generative AI, synthetic faces produced by models like
 
 ## Approach & Architecture
 
+### System Architecture
+
+```mermaid
+flowchart TD
+    A[Uploaded Image] --> B{Haar Cascade\nFace Detection}
+    B -- Face Found --> C[224x224 Face Crop]
+    B -- No Face --> X[400 Bad Request]
+    C --> D[EfficientNet-B0 Backbone]
+    D --> E[Linear Head 1280 -> 1]
+    D -.-> F[Grad-CAM Hook]
+    E --> G[Sigmoid Logit]
+    G --> H[JSON Response:\nLabel, Confidence, Heatmap]
+    F --> H
 ```
-Uploaded Image
-      │
-      ▼
-Face Extraction (MTCNN training / Haar Cascade production)
-      │ 224×224 face crop
-      ▼
-EfficientNet-B0 (ImageNet pre-trained)
-  → fine-tuned end-to-end to convergence (30 epochs)
-  → classifier head: Linear(1280 → 1)
-      │
-   Sigmoid logit → "real" / "fake"
-      │
-   Grad-CAM heatmap (manual hook-based, conv_head layer)
+
+### Data Pipeline
+
+```mermaid
+flowchart LR
+    A[Raw FFHQ\nReal] --> C[MTCNN Extraction]
+    B[Raw StyleGAN2\nFake] --> C
+    C --> D[Balanced Sampling\n1,000 Real / 1,000 Fake]
+    D --> E[Stratified Split\nSeed: 42]
+    E --> F[Train: 1400]
+    E --> G[Val: 300]
+    E --> H[Test: 300]
+    F --> I[Model Training]
+    G --> I
+```
+
+### Deployment Topology
+
+```mermaid
+flowchart LR
+    A[Vercel\nReact Frontend] <-->|REST API| B[Render Free Tier\nFastAPI Backend]
+    B --> C[(model/checkpoints/\nday32_finetuned_converged.pth)]
+    
+    classDef note fill:#fff3cd,stroke:#ffeeba,stroke-width:1px,color:#856404;
+    D[Note: Render Free Tier sleeps after 15m.\nFirst request incurs 30-90s cold start.]:::note -.-> B
 ```
 
 ### Model Selection Decision
