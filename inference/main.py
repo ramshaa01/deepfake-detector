@@ -162,7 +162,7 @@ def load_resources():
 
     torch.set_num_threads(1)
     DEVICE = torch.device("cpu")
-    print("Loading CNN‑only model onto cpu...")
+    print("Loading CNN-only model onto cpu...")
 
     # Load the converged CNN‑only checkpoint (day32_finetuned_converged.pth)
     ckpt_path = ROOT / "model" / "checkpoints" / "day32_finetuned_converged.pth"
@@ -202,26 +202,31 @@ async def predict(request: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail="File too large. Limit is 10MB.")
 
     try:
+        t_start = time.time()
+
         # Extract face using Haar Cascade (no MTCNN/TF needed)
+        t_haar_start = time.time()
         face_pil = haar_extract_face(contents)
+        t_haar_end = time.time()
+        
         if face_pil is None:
             raise HTTPException(status_code=400, detail="No face detected in the uploaded image. Please upload an image containing a clear, visible face.")
 
-        t0 = time.time()
-
+        t_pre_start = time.time()
         img_tensor = TRANSFORM(face_pil).unsqueeze(0).to(DEVICE)
         orig_np = np.array(face_pil.resize((224, 224))) / 255.0
+        t_pre_end = time.time()
 
         # Inference with CNN‑only model
+        t_fwd_start = time.time()
         with torch.no_grad():
             logit = MODEL(img_tensor)
             prob = torch.sigmoid(logit).item()
             pred_label = "fake" if prob > 0.5 else "real"
-
-        t1 = time.time()
-        inference_ms = round((t1 - t0) * 1000, 2)
+        t_fwd_end = time.time()
 
         # Grad‑CAM overlay (manual, no external lib)
+        t_cam_start = time.time()
         try:
             with torch.enable_grad():
                 # Ensure gradients are enabled for the CNN parameters
@@ -232,12 +237,25 @@ async def predict(request: Request, file: UploadFile = File(...)):
                     p.requires_grad_(False)
         except Exception:
             heatmap_b64 = None
+        t_cam_end = time.time()
+        
+        t_total_end = time.time()
+        
+        # Logging
+        latency_log = {
+            "haar_ms": round((t_haar_end - t_haar_start) * 1000, 2),
+            "preprocess_ms": round((t_pre_end - t_pre_start) * 1000, 2),
+            "forward_ms": round((t_fwd_end - t_fwd_start) * 1000, 2),
+            "gradcam_ms": round((t_cam_end - t_cam_start) * 1000, 2),
+            "total_ms": round((t_total_end - t_start) * 1000, 2)
+        }
+        print(f"[Latency Breakdown] {latency_log}")
 
         return {
             "label": pred_label,
             "confidence": prob if pred_label == "fake" else 1 - prob,
             "probability_fake": prob,
-            "inference_time_ms": inference_ms,
+            "inference_time_ms": latency_log["total_ms"],
             "heatmap_base64": heatmap_b64,
         }
 
