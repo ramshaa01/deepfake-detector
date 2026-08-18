@@ -2,7 +2,7 @@
 
 > **Live Demo:** [Frontend UI](https://deepfake-detector-zeta.vercel.app) · [Backend API](https://deepfake-detector-k62g.onrender.com/docs)
 > 
-> **Documentation:** [Model Card](MODEL_CARD.md) · [Dataset Card](DATASET_CARD.md)
+> **Documentation:** [Model Card](MODEL_CARD.md) · [Dataset Card](DATASET_CARD.md) · [Final Metrics Summary](results/final_metrics_summary_v2.md) · [Interview Q&A Bank](results/interview_qa_bank.md)
 > 
 > ⚠️ **Cold-start notice:** The Render free-tier backend sleeps after 15 min of inactivity. The first request after idle will take 30–90 seconds. The frontend displays a warning automatically.
 
@@ -341,10 +341,14 @@ deepfake-detector/
 | 27 | Metrics dashboard | Stat cards, confusion matrix, robustness chart, limitations callout |
 | 28 | Final README | Full project documentation |
 | 29 | Vercel deployment | Frontend live at deepfake-detector-zeta.vercel.app; all 6 e2e tests pass |
-| 30 | Project wrap-up | `results/final_metrics_summary.md`, post-launch review |
+| 30 | Project wrap-up | `results/final_metrics_summary.md` (superseded by v2), post-launch review |
 | 31 | Haar Cascade delta | MTCNN→Haar accuracy gap measured: –6.33pp on fusion model |
 | 32 | Convergence + model selection | CNN fine-tuning re-run to 30-ep convergence (84%/0.9372); fusion evaluated and rejected via matched-OP analysis; CNN-only deployed as production; Haar delta re-measured: –6.00pp |
 | 33 | Interview prep | Created `results/interview_story_bank.md` with STAR-format project stories |
 | 34 | XceptionNet baseline training | Trained field-standard XceptionNet baseline (head-only, then full fine-tune) |
 | 35 | Baseline evaluation | Evaluated XceptionNet; underperforms EfficientNet-B0 (81.60% vs 84.00% acc, 0.9120 vs 0.9372 AUC), confirming the production model choice |
 | **36** | **Cross-generator generalization** | **Evaluated on StyleGAN3 (OOD); accuracy collapsed to 46.67% (fake acc 4.00%, ROC-AUC 0.5513), proving model is scoped to StyleGAN2 distribution** |
+| 37 | Multi-seed variance | 3 independent runs (original, seed=7, seed=123); headline metrics now 84.33% \u00b1 0.34% accuracy, 0.9321 \u00b1 0.0053 ROC-AUC |
+| 38 | Documentation | MODEL_CARD.md, DATASET_CARD.md, Mermaid architecture/pipeline/deployment diagrams |
+| 39 | CI + calibration + latency | GitHub Actions CI pipeline; ECE=0.0687 (well-calibrated); component-wise latency breakdown (446ms Full API response) |
+| **40** | **Project close** | **final_metrics_summary_v2.md, interview_qa_bank.md, full audit, deployment verification** |
