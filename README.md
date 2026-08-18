@@ -86,7 +86,7 @@ Four model iterations were trained and rigorously evaluated on an identical held
 | Precision | 75.16% | 78.00% | 75.58% | 0.8200 | **81.40% ± 0.45%** |
 | Recall | 76.67% | 78.00% | 86.67% | 0.8100 | **83.78% ± 9.05%** |
 | F1 Score | 75.91% | 78.00% | 80.75% | 0.8150 | **82.42% ± 4.76%** |
-| Latency (batch=1, CPU) | ~195 ms | ~191 ms | ~241 ms | ~118 ms | **73.5 ms** |
+| Model inference only (batch=1, CPU) | ~195 ms | ~191 ms | ~241 ms | ~118 ms | **73.5 ms** |
 | Parameters | 4.0M | 4.0M | 4.5M | 20.8M | **4.0M** |
 | **Status** | Superseded | Superseded | Evaluated, rejected | Underperforms | ✅ **PRODUCTION** |
 
@@ -94,7 +94,7 @@ Four model iterations were trained and rigorously evaluated on an identical held
 
 - **ROC-AUC** (threshold-independent ranking): CNN-only wins, 0.9372 vs 0.9328.
 - **Precision at matched recall** (tested at 0.80, 0.85, 0.87 recall): CNN-only wins at all three points.
-- **Latency**: CNN-only is 17% faster (73.5 ms vs 88.05 ms at batch=1, CPU).
+- **Model inference only**: CNN-only is 17% faster (73.5 ms vs 88.05 ms at batch=1, CPU).
 
 The fusion model's slightly higher accuracy at the default threshold is a threshold artefact: if it genuinely ranked better, it would win on ROC-AUC. It does not. The converged CNN-only model is the strictly correct choice — it improved by completing training properly, not by adding complexity. See [results/day32_final_summary.md](results/day32_final_summary.md) for the full evidence table.
 
@@ -123,6 +123,13 @@ The fusion model's slightly higher accuracy at the default threshold is a thresh
 True Real  │   119    │    31   │
 True Fake  │    16    │   134   │
 ```
+
+### System Latency Breakdown
+
+There are three meaningfully different latency numbers referenced in this project, each measuring a different part of the system:
+1. **Model inference only (~73 ms):** Measures just the EfficientNet-B0 forward pass in isolation (CPU, batch=1).
+2. **Full API response (~446 ms):** Measures the entire `/predict` endpoint execution on the server. This includes Haar Cascade face detection, preprocessing, the forward pass, and Grad-CAM generation. Grad-CAM generation (which requires a backward pass, OpenCV blending, and base64 encoding) accounts for the vast majority (~300ms) of this time.
+3. **End-to-end live latency (~2.4s):** Measures the real-world user experience from the deployed Vercel frontend to the Render backend, including network round-trip overhead.
 
 ### Robustness Under Perturbations
 
@@ -173,7 +180,7 @@ In local training and evaluation, the highly accurate MTCNN deep learning model 
 
 ### 4. Render Free-Tier Cold Start
 
-The live API backend runs on Render's free tier, which **spins down after 15 minutes of inactivity**. The first request after an idle period takes **30–90 seconds** to respond while the container restarts and loads the model. Subsequent requests within the same session are fast (~240–400 ms end-to-end). The frontend handles this with a visible "waking up the server" notice after 5 seconds.
+The live API backend runs on Render's free tier, which **spins down after 15 minutes of inactivity**. The first request after an idle period takes **30–90 seconds** to respond while the container restarts and loads the model. Subsequent requests within the same session are fast (~446 ms Full API response, ~2.4s End-to-end live latency). The frontend handles this with a visible "waking up the server" notice after 5 seconds.
 
 ### 5. Scope: StyleGAN2 Training Distribution Only (Cross-Generator Failure)
 
@@ -308,7 +315,7 @@ deepfake-detector/
 
 ## Resume Line
 
-> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 to convergence (84.33% ± 0.34% test accuracy, 0.9321 ± 0.0053 ROC-AUC across 3 independent runs on held-out test set; 78.00% measured production accuracy via Haar Cascade). Rigorously evaluated CNN+FFT fusion architecture and rejected it via matched-operating-point analysis — CNN-only wins on ROC-AUC, precision at every tested recall level, and inference speed (73ms vs 88ms). Documented failure modes: eyeglasses false-positive bias (Grad-CAM confirmed), catastrophic collapse under heavy blur/downscaling, and Haar Cascade production delta (–6pp, fully measured). Full-stack deployment: FastAPI on Render, React on Vercel; end-to-end latency ~2.4s.
+> **AI-Generated Face Detector** — Built a full-stack deepfake detection system: fine-tuned EfficientNet-B0 to convergence (84.33% ± 0.34% test accuracy, 0.9321 ± 0.0053 ROC-AUC across 3 independent runs on held-out test set; 78.00% measured production accuracy via Haar Cascade). Rigorously evaluated CNN+FFT fusion architecture and rejected it via matched-operating-point analysis — CNN-only wins on ROC-AUC, precision at every tested recall level, and inference speed (73ms Model inference only vs 88ms). Documented failure modes: eyeglasses false-positive bias (Grad-CAM confirmed), catastrophic collapse under heavy blur/downscaling, and Haar Cascade production delta (–6pp, fully measured). Full-stack deployment: FastAPI on Render, React on Vercel; Full API response latency ~446ms (End-to-end live latency ~2.4s).
 
 ---
 

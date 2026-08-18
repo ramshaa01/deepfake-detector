@@ -62,9 +62,9 @@ automatically.
 
 **Situation.**
 After training the CNN+FFT fusion model on Day 16, I reported 79.33% accuracy and noted
-an inference time of ~53 ms. Both numbers looked good. But when I set up the FastAPI
+a Model inference only time of ~53 ms. Both numbers looked good. But when I set up the FastAPI
 endpoint on Day 22 and benchmarked it under realistic conditions — single image, no
-pre-computed FFT, loading from disk — the measured latency was 241 ms, nearly five
+pre-computed FFT, loading from disk — the measured Model inference only latency was 241 ms, nearly five
 times higher. At the same time, the fusion model's recall (86.67%) was substantially
 higher than the CNN-only baseline (78.00%), which I'd initially reported as a clear win
 for fusion.
@@ -162,7 +162,7 @@ at each point. I also compared ROC-AUC directly, since it is threshold-independe
 construction. The results were the opposite of what I expected: CNN-only had higher
 ROC-AUC (0.9372 vs 0.9328) — meaning it ranked real vs fake better at every possible
 threshold. CNN-only had higher precision at all three matched-recall points. And CNN-only
-was 17% faster (73.5 ms vs 88.05 ms at batch=1). The fusion model's higher default-
+was 17% faster on Model inference only (73.5 ms vs 88.05 ms at batch=1). The fusion model's higher default-
 threshold accuracy (82% vs 84% in favor of CNN-only) was — as before — a threshold
 artifact.
 
